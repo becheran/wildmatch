@@ -1,9 +1,13 @@
+//! Match strings against a simple wildcard pattern.
+
+/// Wildcard matcher used to match strings.
 #[derive(Debug)]
 pub struct WildMatch {
     pattern: Vec<char>,
 }
 
 impl WildMatch {
+    /// Constructor with pattern which shall be used for matching.
     pub fn new(pattern: &str) -> WildMatch {
         let mut simplified: Vec<char> = Vec::new();
         let mut prev_was_star = false;
@@ -22,10 +26,11 @@ impl WildMatch {
             pattern: simplified,
         }
     }
+    /// Indicates whether the matcher finds a match in the input string.
     pub fn is_match(&self, input: &str) -> bool {
         if self.pattern.len() == 1 && self.pattern[0] == '*' {
             return true;
-        } 
+        }
         let mut pattern_idx = 0;
         let mut wildcard = false;
         for input_char in input.chars() {
