@@ -24,36 +24,31 @@ impl WildMatch {
     }
     pub fn is_match(&self, input: &str) -> bool {
         if self.pattern.len() == 1 && self.pattern[0] == '*' {
-            true
-        } else {
-            let mut pattern_idx = 0;
-            let mut wildcard = false;
-            for input_char in input.chars() {
-                let pattern_char = self.pattern.get(pattern_idx);
-                if pattern_char.is_none() {
-                    return true;
-                }
-                let pattern_char = pattern_char.unwrap();
-                println!("inp {}", input_char);
-                println!("pat {}", pattern_char);
-                if pattern_char == &input_char || pattern_char == &'?' {
-                    println!("MATCH");
-                    pattern_idx += 1;
-                    if wildcard {
-                        wildcard = false;
-                    }
-                } else if wildcard {
-                    continue;
-                } else if pattern_char == &'*' {
-                    wildcard = true;
-                    pattern_idx += 1;
-                } else {
-                    println!("RESET");
-                    pattern_idx = 0;
-                }
+            return true;
+        } 
+        let mut pattern_idx = 0;
+        let mut wildcard = false;
+        for input_char in input.chars() {
+            let pattern_char = self.pattern.get(pattern_idx);
+            if pattern_char.is_none() {
+                return true;
             }
-            return self.pattern.get(pattern_idx).is_none();
+            let pattern_char = pattern_char.unwrap();
+            if pattern_char == &input_char || pattern_char == &'?' {
+                pattern_idx += 1;
+                if wildcard {
+                    wildcard = false;
+                }
+            } else if wildcard {
+                continue;
+            } else if pattern_char == &'*' {
+                wildcard = true;
+                pattern_idx += 1;
+            } else {
+                pattern_idx = 0;
+            }
         }
+        return self.pattern.get(pattern_idx).is_none();
     }
 }
 
@@ -84,5 +79,11 @@ mod tests {
     fn no_match_cat(pattern: &str) {
         let m = WildMatch::new(pattern);
         assert!(!m.is_match("cat"));
+    }
+
+    #[test]
+    fn longer_string_match() {
+        let m = WildMatch::new("*cat*");
+        assert!(m.is_match("d&(*og_cat_dog"));
     }
 }
