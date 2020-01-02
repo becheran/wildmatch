@@ -11,7 +11,9 @@ A very simplified syntax is used here. See also the example described on [wikipe
 
 No escape characters are defined
 
-- `?` matches exactly one occurrence of any character. For example the pattern `ca?` will match for strings `cat` or `car`.
-- `*` matches arbitrary many (including zero) occurrences of any character. For example the pattern `https://*` will match all https urls, such as `https://google.de` or `https://github.com/becheran/wildmatch`.
+- `?` matches exactly one occurrence of any character.
+- `*` matches arbitrary many (including zero) occurrences of any character.
+
+For example the pattern `ca?` will match for strings `cat` or `car`. The pattern `https://*` will match all https urls, such as `https://google.de` or `https://github.com/becheran/wildmatch`.
 
 See the [documentation](https://docs.rs/wildmatch) for usage and more examples.
