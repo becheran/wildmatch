@@ -1,19 +1,19 @@
 stages:
     - build
   
-  link-checker-mlc:
+link-checker-mlc:
     stage: build
     image: rust:latest
     script:
-      - curl -L https://github.com/becheran/mlc/releases/download/v0.6.4/mlc -o mlc
-      - chmod +x mlc
-      - ./mlc
+        - curl -L https://github.com/becheran/mlc/releases/download/v0.6.4/mlc -o mlc
+        - chmod +x mlc
+        - ./mlc
     allow_failure: true
-  
-  build-rust-nightly:
+
+build-rust-nightly:
     stage: build
     image: rustlang/rust:nightly
     script:
-      - cargo build --verbose
-      - cargo test --verbose
+        - cargo build --verbose
+        - cargo test --verbose
     allow_failure: true
