@@ -64,8 +64,6 @@ impl WildMatch {
         let mut wildcard = false;
         for input_char in input.chars() {
             let pattern_char = self.pattern.get(pattern_idx);
-            println!("match_min: {}", self.match_min_len);
-            println!("pattern_len: {}", pattern_len);
             if pattern_char.is_none() && pattern_len >= self.match_min_len {
                 return wildcard;
             }
