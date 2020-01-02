@@ -1,5 +1,5 @@
 [package]
-name = "wild-match"
+name = "wildmatch"
 version = "0.1.0"
 authors = ["Armin Becher <armin.becher@gmail.com>"]
 edition = "2018"
@@ -7,7 +7,7 @@ description = "Simple string matching  with questionmark and star wildcard opera
 keywords = [ "globbing", "matching", "questionmark", "star", "string-matching"]
 readme = "README.md"
 license = "MIT"
-repository = "https://github.com/becheran/wild-match"
+repository = "https://github.com/becheran/wildmatch"
 
 [dependencies]
 
