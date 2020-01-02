@@ -9,6 +9,7 @@
 //!
 //! Examples matching wildcards:
 //! ``` rust
+//! # extern crate wild_match; use wild_match::WildMatch;
 //! assert!(WildMatch::new("cat").is_match("cat"));
 //! assert!(WildMatch::new("*cat*").is_match("dog_cat_dog"));
 //! assert!(WildMatch::new("c?t").is_match("cat"));
@@ -16,16 +17,18 @@
 //! ```
 //! Examples not matching wildcards:
 //! ``` rust
-//! assert!(WildMatch::new("dog").is_match("cat"));
-//! assert!(WildMatch::new("*d").is_match("cat"));
-//! assert!(WildMatch::new("????").is_match("cat"));
-//! assert!(WildMatch::new("?").is_match("cat"));
+//! # extern crate wild_match; use wild_match::WildMatch;
+//! assert!(!WildMatch::new("dog").is_match("cat"));
+//! assert!(!WildMatch::new("*d").is_match("cat"));
+//! assert!(!WildMatch::new("????").is_match("cat"));
+//! assert!(!WildMatch::new("?").is_match("cat"));
 //! ```
 
 /// Wildcard matcher used to match strings.
 #[derive(Debug)]
 pub struct WildMatch {
     pattern: Vec<char>,
+    match_min_len: usize,
 }
 
 impl WildMatch {
@@ -33,6 +36,7 @@ impl WildMatch {
     pub fn new(pattern: &str) -> WildMatch {
         let mut simplified: Vec<char> = Vec::new();
         let mut prev_was_star = false;
+        let mut match_min_len = 0;
         for i in pattern.chars() {
             if i == '*' {
                 if !prev_was_star {
@@ -42,10 +46,12 @@ impl WildMatch {
             } else {
                 simplified.push(i);
                 prev_was_star = false;
+                match_min_len += 1;
             }
         }
         WildMatch {
             pattern: simplified,
+            match_min_len: match_min_len,
         }
     }
     /// Indicates whether the matcher finds a match in the input string.
@@ -54,15 +60,19 @@ impl WildMatch {
             return true;
         }
         let mut pattern_idx = 0;
+        let mut pattern_len = 0;
         let mut wildcard = false;
         for input_char in input.chars() {
             let pattern_char = self.pattern.get(pattern_idx);
-            if pattern_char.is_none() {
-                return true;
+            println!("match_min: {}", self.match_min_len);
+            println!("pattern_len: {}", pattern_len);
+            if pattern_char.is_none() && pattern_len >= self.match_min_len {
+                return wildcard;
             }
             let pattern_char = pattern_char.unwrap();
             if pattern_char == &input_char || pattern_char == &'?' {
                 pattern_idx += 1;
+                pattern_len += 1;
                 if wildcard {
                     wildcard = false;
                 }
@@ -73,9 +83,10 @@ impl WildMatch {
                 pattern_idx += 1;
             } else {
                 pattern_idx = 0;
+                pattern_len = 0;
             }
         }
-        return self.pattern.get(pattern_idx).is_none();
+        return self.pattern.get(pattern_idx).is_none() && pattern_len >= self.match_min_len;
     }
 }
 
@@ -86,11 +97,13 @@ mod tests {
 
     #[test_case("**", test_name = "star_star")]
     #[test_case("*", test_name = "star")]
+    #[test_case("*?*", test_name = "star_q_star")]
+    #[test_case("c*", test_name = "c_star")]
     #[test_case("c?*", test_name = "c_q_star")]
     #[test_case("???", test_name = "qqq")]
     #[test_case("c?t", test_name = "c_q_t")]
     #[test_case("cat", test_name = "cat")]
-    fn valid_match_cat(pattern: &str) {
+    fn is_match(pattern: &str) {
         let m = WildMatch::new(pattern);
         assert!(m.is_match("cat"));
     }
@@ -98,12 +111,16 @@ mod tests {
     #[test_case("*d*", test_name = "star_d_star")]
     #[test_case("*d", test_name = "star_d")]
     #[test_case("d*", test_name = "d_star")]
+    #[test_case("*c", test_name = "star_c")]
+    #[test_case("?", test_name = "q")]
+    #[test_case("??", test_name = "q2")]
     #[test_case("????", test_name = "q4")]
     #[test_case("?????", test_name = "q5")]
     #[test_case("*????", test_name = "wild_q_four")]
     #[test_case("cats", test_name = "longer")]
     #[test_case("cat?", test_name = "longer_q")]
-    fn no_match_cat(pattern: &str) {
+    #[test_case("cacat", test_name = "cacat")]
+    fn no_match(pattern: &str) {
         let m = WildMatch::new(pattern);
         assert!(!m.is_match("cat"));
     }
