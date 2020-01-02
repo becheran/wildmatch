@@ -9,7 +9,7 @@
 //!
 //! Examples matching wildcards:
 //! ``` rust
-//! # extern crate wild_match; use wild_match::WildMatch;
+//! # extern crate wildmatch; use wildmatch::WildMatch;
 //! assert!(WildMatch::new("cat").is_match("cat"));
 //! assert!(WildMatch::new("*cat*").is_match("dog_cat_dog"));
 //! assert!(WildMatch::new("c?t").is_match("cat"));
@@ -17,7 +17,7 @@
 //! ```
 //! Examples not matching wildcards:
 //! ``` rust
-//! # extern crate wild_match; use wild_match::WildMatch;
+//! # extern crate wildmatch; use wildmatch::WildMatch;
 //! assert!(!WildMatch::new("dog").is_match("cat"));
 //! assert!(!WildMatch::new("*d").is_match("cat"));
 //! assert!(!WildMatch::new("????").is_match("cat"));
