@@ -1,4 +1,26 @@
 //! Match strings against a simple wildcard pattern.
+//! Tests a wildcard pattern p against an input string s. Returns true only when p matches the entirety of s.
+//!
+//! A very simplified syntax is used here. See also the example described on [wikipedia](https://en.wikipedia.org/wiki/Matching_wildcards) for matching wildcards.
+//!
+//! No escape characters are defined
+//! - `?` matches exactly one occurrence of any character.
+//! - `*` matches arbitrary many (including zero) occurrences of any character.
+//!
+//! Examples matching wildcards:
+//! ``` rust
+//! assert!(WildMatch::new("cat").is_match("cat"));
+//! assert!(WildMatch::new("*cat*").is_match("dog_cat_dog"));
+//! assert!(WildMatch::new("c?t").is_match("cat"));
+//! assert!(WildMatch::new("c?t").is_match("cot"));
+//! ```
+//! Examples not matching wildcards:
+//! ``` rust
+//! assert!(WildMatch::new("dog").is_match("cat"));
+//! assert!(WildMatch::new("*d").is_match("cat"));
+//! assert!(WildMatch::new("????").is_match("cat"));
+//! assert!(WildMatch::new("?").is_match("cat"));
+//! ```
 
 /// Wildcard matcher used to match strings.
 #[derive(Debug)]
