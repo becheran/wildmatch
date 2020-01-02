@@ -5,10 +5,9 @@ link-checker-mlc:
     stage: build
     image: rust:latest
     script:
-        - curl -L https://github.com/becheran/mlc/releases/download/v0.6.4/mlc -o mlc
+        - curl -L https://github.com/becheran/mlc/releases/download/v0.7.0/mlc -o mlc
         - chmod +x mlc
-        - ./mlc
-    allow_failure: true
+        - ./mlc --ignore-links "http*://crates.io*"
 
 build-rust-nightly:
     stage: build
