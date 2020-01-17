@@ -32,21 +32,24 @@ pub struct WildMatch {
 }
 
 impl WildMatch {
-    /// Constructor with pattern which shall be used for matching.
+    /// Constructor with pattern which can be used for matching.
     pub fn new(pattern: &str) -> WildMatch {
         let mut simplified: Vec<char> = Vec::new();
         let mut prev_was_star = false;
         let mut match_min_len = 0;
         for i in pattern.chars() {
-            if i == '*' {
-                if !prev_was_star {
-                    simplified.push(i);
+            match i {
+                '*' => {
+                    if !prev_was_star {
+                        simplified.push(i);
+                    }
+                    prev_was_star = true;
                 }
-                prev_was_star = true;
-            } else {
-                simplified.push(i);
-                prev_was_star = false;
-                match_min_len += 1;
+                _ => {
+                    simplified.push(i);
+                    prev_was_star = false;
+                    match_min_len += 1;
+                }
             }
         }
         WildMatch {
@@ -54,6 +57,7 @@ impl WildMatch {
             match_min_len: match_min_len,
         }
     }
+
     /// Indicates whether the matcher finds a match in the input string.
     pub fn is_match(&self, input: &str) -> bool {
         if self.pattern.len() == 1 && self.pattern[0] == '*' {
@@ -63,25 +67,28 @@ impl WildMatch {
         let mut pattern_len = 0;
         let mut wildcard = false;
         for input_char in input.chars() {
-            let pattern_char = self.pattern.get(pattern_idx);
-            if pattern_char.is_none() && pattern_len >= self.match_min_len {
-                return wildcard;
-            }
-            let pattern_char = pattern_char.unwrap();
-            if pattern_char == &input_char || pattern_char == &'?' {
-                pattern_idx += 1;
-                pattern_len += 1;
-                if wildcard {
-                    wildcard = false;
+            match self.pattern.get(pattern_idx) {
+                None if pattern_len >= self.match_min_len => {
+                    return wildcard;
                 }
-            } else if wildcard {
-                continue;
-            } else if pattern_char == &'*' {
-                wildcard = true;
-                pattern_idx += 1;
-            } else {
-                pattern_idx = 0;
-                pattern_len = 0;
+                Some(c) if c == &input_char || c == &'?' => {
+                    pattern_idx += 1;
+                    pattern_len += 1;
+                    if wildcard {
+                        wildcard = false;
+                    }
+                }
+                Some(_) if wildcard => {
+                    continue;
+                }
+                Some(c) if c == &'*' => {
+                    wildcard = true;
+                    pattern_idx += 1;
+                }
+                _ => {
+                    pattern_idx = 0;
+                    pattern_len = 0;
+                }
             }
         }
         return self.pattern.get(pattern_idx).is_none() && pattern_len >= self.match_min_len;
