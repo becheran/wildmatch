@@ -84,6 +84,15 @@ impl WildMatch {
                 Some(c) if c == &'*' => {
                     wildcard = true;
                     pattern_idx += 1;
+                    if self.pattern.get(pattern_idx) == Some(&input_char)
+                        || self.pattern.get(pattern_idx) == Some(&'?')
+                    {
+                        pattern_idx += 1;
+                        pattern_len += 1;
+                        if wildcard {
+                            wildcard = false;
+                        }
+                    }
                 }
                 _ => {
                     pattern_idx = 0;
@@ -91,7 +100,8 @@ impl WildMatch {
                 }
             }
         }
-        return self.pattern.get(pattern_idx).is_none() && pattern_len >= self.match_min_len;
+        return self.pattern.get(pattern_idx).is_none() && pattern_len >= self.match_min_len
+            || self.pattern.get(pattern_idx) == Some(&'*');
     }
 }
 
@@ -108,6 +118,8 @@ mod tests {
     #[test_case("???", test_name = "qqq")]
     #[test_case("c?t", test_name = "c_q_t")]
     #[test_case("cat", test_name = "cat")]
+    #[test_case("*cat", test_name = "star_cat")]
+    #[test_case("cat*", test_name = "cat_star")]
     fn is_match(pattern: &str) {
         let m = WildMatch::new(pattern);
         assert!(m.is_match("cat"));
