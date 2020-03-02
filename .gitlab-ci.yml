@@ -8,6 +8,7 @@ link-checker-mlc:
         - curl -L https://github.com/becheran/mlc/releases/download/v0.7.0/mlc -o mlc
         - chmod +x mlc
         - ./mlc --ignore-links "http*://crates.io*"
+    allow_failure: true
 
 build-rust-nightly:
     stage: build
@@ -15,4 +16,3 @@ build-rust-nightly:
     script:
         - cargo build --verbose
         - cargo test --verbose
-    allow_failure: true
