@@ -12,4 +12,4 @@ repository = "https://github.com/becheran/wildmatch"
 [dependencies]
 
 [dev-dependencies]
-ntest = "0.4.1"
+ntest = "0.5.1"
