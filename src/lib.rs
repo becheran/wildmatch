@@ -32,7 +32,7 @@ pub struct WildMatch {
 
 #[derive(Debug)]
 struct State {
-    next_char: char,
+    next_char: Option<char>,
     has_wildcard: bool,
     is_final_state: bool,
 }
@@ -49,7 +49,7 @@ impl WildMatch {
                 }
                 _ => {
                     let s = State {
-                        next_char: current_char,
+                        next_char: Some(current_char),
                         has_wildcard: prev_was_star,
                         is_final_state: false,
                     };
@@ -61,7 +61,7 @@ impl WildMatch {
 
         if pattern.chars().count() > 0 {
             let final_state = State {
-                next_char: '*', // Sign does not matter
+                next_char: None,
                 has_wildcard: prev_was_star,
                 is_final_state: true,
             };
@@ -81,18 +81,16 @@ impl WildMatch {
                 None => {
                     return false;
                 }
-                Some(c) if c.next_char == '?' => {
-                    if !c.is_final_state{
-                        pattern_idx += 1;
-                    }
+                Some(p) if p.next_char == Some('?') => {
+                    pattern_idx += 1;
                 }
-                Some(c) if c.next_char == input_char => {
-                    if !c.is_final_state{
-                        pattern_idx += 1;
-                    }
+                Some(p) if p.next_char == Some(input_char) => {
+                    pattern_idx += 1;
                 }
-                Some(c) if c.has_wildcard => {
-                    continue;
+                Some(p) if p.has_wildcard => {
+                    if p.is_final_state {
+                        return true;
+                    }
                 }
                 _ => {
                     // Go back to last state with wildcard
@@ -166,6 +164,13 @@ mod tests {
     #[test_case("*cat*", "d&(*og_cat_dog")]
     #[test_case("*?*", "d&(*og_cat_dog")]
     #[test_case("*a*", "d&(*og_cat_dog")]
+    #[test_case("*", "*")]
+    #[test_case("*", "?")]
+    #[test_case("?", "?")]
+    #[test_case("wildcats", "wildcats")]
+    #[test_case("wild*cats", "wild?cats")]
+    #[test_case("wi*ca*s", "wildcats")]
+    #[test_case("wi*ca?s", "wildcats")]
     #[test_case("*o?", "hog_cat_dog")]
     #[test_case("*o?", "cat_dog")]
     #[test_case("*at_dog", "cat_dog")]
