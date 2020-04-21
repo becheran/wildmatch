@@ -4,6 +4,7 @@
 [![](https://badgen.net/crates/d/wildmatch)](https://crates.io/crates/wildmatch)
 [![Build Status](https://gitlab.com/becheran/wildmatch_ci/badges/master/pipeline.svg)](https://gitlab.com/becheran/wildmatch_ci/pipelines)
 [![](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![codecov](https://codecov.io/gh/becheran/wildmatch/branch/master/graph/badge.svg)](https://codecov.io/gh/becheran/wildmatch)
 
 Match strings against a simple wildcard pattern. Tests a wildcard pattern `p` against an input string `s`. Returns true only when `p` matches the entirety of `s`.
 
