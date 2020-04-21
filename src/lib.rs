@@ -33,6 +33,7 @@ pub struct WildMatch {
 #[derive(Debug)]
 struct State {
     next_char: Option<char>,
+    in_char: Option<char>,
     has_wildcard: bool,
     is_final_state: bool,
 }
@@ -42,6 +43,7 @@ impl WildMatch {
     pub fn new(pattern: &str) -> WildMatch {
         let mut simplified: Vec<State> = Vec::new();
         let mut prev_was_star = false;
+        let mut prev = None;
         for current_char in pattern.chars() {
             match current_char {
                 '*' => {
@@ -50,6 +52,7 @@ impl WildMatch {
                 _ => {
                     let s = State {
                         next_char: Some(current_char),
+                        in_char: prev,
                         has_wildcard: prev_was_star,
                         is_final_state: false,
                     };
@@ -57,11 +60,13 @@ impl WildMatch {
                     prev_was_star = false;
                 }
             }
+            prev = Some(current_char);
         }
 
         if pattern.chars().count() > 0 {
             let final_state = State {
                 next_char: None,
+                in_char: prev,
                 has_wildcard: prev_was_star,
                 is_final_state: true,
             };
@@ -92,6 +97,7 @@ impl WildMatch {
                         return true;
                     }
                 }
+                Some(p) if p.in_char == Some(input_char) => {}
                 _ => {
                     // Go back to last state with wildcard
                     while let Some(pattern) = self.pattern.get(pattern_idx) {
@@ -176,7 +182,10 @@ mod tests {
     #[test_case("*at_dog", "cat_dog")]
     #[test_case(" ", " ")]
     #[test_case("* ", "\n ")]
-    #[test_case("\n", "\n", name="special_chars")]
+    #[test_case("\n", "\n", name = "special_chars")]
+    #[test_case("*32", "432")]
+    #[test_case("*32", "332")]
+    #[test_case("33*", "333")]
     fn match_long(pattern: &str, expected: &str) {
         let m = WildMatch::new(pattern);
         assert!(m.is_match(expected))
