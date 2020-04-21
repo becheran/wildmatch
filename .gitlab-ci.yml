@@ -16,3 +16,21 @@ build-rust-nightly:
     script:
         - cargo build --verbose
         - cargo test --verbose
+
+build-rust-latest:
+    image: rust:latest
+    stage: build
+    script:
+        - cargo build --verbose
+        - cargo test --verbose
+
+build-with-coverage:
+    stage: build
+    image: akubera/rust-codecov:stable
+    script:
+        - cargo build --verbose
+        - cargo test --verbose
+        - |
+            for file in target/debug/*; do [ -x "${file}" ] || continue; mkdir -p "target/cov/$(basename $file)"; kcov --exclude-pattern=/.cargo,/usr/lib --verify "target/cov/$(basename $file)" "$file"; done &&
+            bash <(curl -s https://codecov.io/bash) &&
+            echo "Uploaded code coverage"
