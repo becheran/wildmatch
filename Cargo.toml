@@ -7,9 +7,10 @@ description = "Simple string matching  with questionmark and star wildcard opera
 keywords = [ "globbing", "matching", "questionmark", "star", "string-matching"]
 readme = "README.md"
 license = "MIT"
+categories = ["algorithms"]
 repository = "https://github.com/becheran/wildmatch"
 
 [dependencies]
 
 [dev-dependencies]
-ntest = "0.5.1"
+ntest = "0.6.0"
