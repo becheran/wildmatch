@@ -25,8 +25,8 @@ build-rust-latest:
         - cargo test --verbose
 
 build-with-coverage:
-    stage: datenstrom/rust-codecov:stable
-    image: rust:latest
+    stage: build
+    image: datenstrom/rust-codecov:stable
     script:
         - cargo build --verbose
         - cargo test --verbose
