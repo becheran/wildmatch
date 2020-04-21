@@ -18,8 +18,8 @@ build-rust-nightly:
         - cargo test --verbose
 
 build-rust-latest:
+    image: rust:latest
     stage: build
-    image: rustlang/rust:latest
     script:
         - cargo build --verbose
         - cargo test --verbose
