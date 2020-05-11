@@ -25,12 +25,12 @@
 //! ```
 
 /// Wildcard matcher used to match strings.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct WildMatch {
     pattern: Vec<State>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct State {
     next_char: Option<char>,
     in_char: Option<char>,
