@@ -36,22 +36,11 @@ struct State {
     next_char: Option<char>,
     in_char: Option<char>,
     has_wildcard: bool,
-    is_final_state: bool,
 }
 
 impl ToString for WildMatch {
     fn to_string(&self) -> String {
-        return self
-            .pattern
-            .iter()
-            .filter_map(|f| {
-                if f.is_final_state {
-                    None
-                } else {
-                    Some(f.next_char.unwrap())
-                }
-            })
-            .collect();
+        return self.pattern.iter().filter_map(|f| f.next_char).collect();
     }
 }
 
@@ -71,7 +60,6 @@ impl WildMatch {
                         next_char: Some(current_char),
                         in_char: prev,
                         has_wildcard: prev_was_star,
-                        is_final_state: false,
                     };
                     simplified.push(s);
                     prev_was_star = false;
@@ -85,7 +73,6 @@ impl WildMatch {
                 next_char: None,
                 in_char: prev,
                 has_wildcard: prev_was_star,
-                is_final_state: true,
             };
             simplified.push(final_state);
         }
@@ -110,7 +97,7 @@ impl WildMatch {
                     pattern_idx += 1;
                 }
                 Some(p) if p.has_wildcard => {
-                    if p.is_final_state {
+                    if p.next_char == None {
                         return true;
                     }
                 }
@@ -129,7 +116,7 @@ impl WildMatch {
                 }
             }
         }
-        return self.pattern.get(pattern_idx).unwrap().is_final_state;
+        return self.pattern.get(pattern_idx).unwrap().next_char.is_none();
     }
 }
 
