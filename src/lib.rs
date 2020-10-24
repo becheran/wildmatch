@@ -39,6 +39,22 @@ struct State {
     is_final_state: bool,
 }
 
+impl ToString for WildMatch {
+    fn to_string(&self) -> String {
+        return self
+            .pattern
+            .iter()
+            .filter_map(|f| {
+                if f.is_final_state {
+                    None
+                } else {
+                    Some(f.next_char.unwrap())
+                }
+            })
+            .collect();
+    }
+}
+
 impl WildMatch {
     /// Constructor with pattern which can be used for matching.
     pub fn new(pattern: &str) -> WildMatch {
@@ -190,5 +206,23 @@ mod tests {
     fn match_long(pattern: &str, expected: &str) {
         let m = WildMatch::new(pattern);
         assert!(m.is_match(expected))
+    }
+
+    #[test]
+    fn print_string() {
+        let m = WildMatch::new("Foo/Bar");
+        assert_eq!("Foo/Bar", m.to_string());
+    }
+
+    #[test]
+    fn to_string_f() {
+        let m = WildMatch::new("F");
+        assert_eq!("F", m.to_string());
+    }
+
+    #[test]
+    fn to_string_empty() {
+        let m = WildMatch::new("");
+        assert_eq!("", m.to_string());
     }
 }
