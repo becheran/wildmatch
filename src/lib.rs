@@ -34,7 +34,6 @@ pub struct WildMatch {
 #[derive(Debug, Clone)]
 struct State {
     next_char: Option<char>,
-    in_char: Option<char>,
     has_wildcard: bool,
 }
 
@@ -49,7 +48,6 @@ impl WildMatch {
     pub fn new(pattern: &str) -> WildMatch {
         let mut simplified: Vec<State> = Vec::new();
         let mut prev_was_star = false;
-        let mut prev = None;
         for current_char in pattern.chars() {
             match current_char {
                 '*' => {
@@ -58,20 +56,17 @@ impl WildMatch {
                 _ => {
                     let s = State {
                         next_char: Some(current_char),
-                        in_char: prev,
                         has_wildcard: prev_was_star,
                     };
                     simplified.push(s);
                     prev_was_star = false;
                 }
             }
-            prev = Some(current_char);
         }
 
         if pattern.chars().count() > 0 {
             let final_state = State {
                 next_char: None,
-                in_char: prev,
                 has_wildcard: prev_was_star,
             };
             simplified.push(final_state);
@@ -90,10 +85,7 @@ impl WildMatch {
                 None => {
                     return false;
                 }
-                Some(p) if p.next_char == Some('?') => {
-                    pattern_idx += 1;
-                }
-                Some(p) if p.next_char == Some(input_char) => {
+                Some(p) if p.next_char == Some('?') || p.next_char == Some(input_char) => {
                     pattern_idx += 1;
                 }
                 Some(p) if p.has_wildcard => {
@@ -101,11 +93,16 @@ impl WildMatch {
                         return true;
                     }
                 }
-                Some(p) if p.in_char == Some(input_char) => {}
                 _ => {
                     // Go back to last state with wildcard
                     while let Some(pattern) = self.pattern.get(pattern_idx) {
                         if pattern.has_wildcard {
+                            // Match last char again
+                            if pattern.next_char == Some('?')
+                                || pattern.next_char == Some(input_char)
+                            {
+                                pattern_idx += 1;
+                            }
                             break;
                         }
                         if pattern_idx == 0 {
@@ -165,6 +162,8 @@ mod tests {
     #[test_case("*a", "wildcats")]
     #[test_case("", "wildcats")]
     #[test_case(" ", "wildcats")]
+    #[test_case(" ", "\n")]
+    #[test_case(" ", "\t", name = "whitespaceMismatch")]
     #[test_case("???", "wildcats")]
     fn no_match_long(pattern: &str, expected: &str) {
         let m = WildMatch::new(pattern);
@@ -189,6 +188,12 @@ mod tests {
     #[test_case("\n", "\n", name = "special_chars")]
     #[test_case("*32", "432")]
     #[test_case("*32", "332")]
+    #[test_case("*332", "332")]
+    #[test_case("*32", "32")]
+    #[test_case("*32", "3232")]
+    #[test_case("*32", "3232332")]
+    #[test_case("*?2", "332")]
+    #[test_case("*?2", "3332")]
     #[test_case("33*", "333")]
     fn match_long(pattern: &str, expected: &str) {
         let m = WildMatch::new(pattern);
