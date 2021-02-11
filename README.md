@@ -1,5 +1,6 @@
 # wildmatch
 
+[![](https://docs.rs/wildmatch/badge.svg)](https://docs.rs/wildmatch)
 [![](http://meritbadge.herokuapp.com/wildmatch)](https://crates.io/crates/wildmatch)
 [![](https://badgen.net/crates/d/wildmatch)](https://crates.io/crates/wildmatch)
 [![Build Status](https://gitlab.com/becheran/wildmatch_ci/badges/master/pipeline.svg)](https://gitlab.com/becheran/wildmatch_ci/pipelines)
