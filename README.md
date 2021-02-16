@@ -1,11 +1,11 @@
 # wildmatch
 
-[![](https://docs.rs/wildmatch/badge.svg)](https://docs.rs/wildmatch)
-[![](http://meritbadge.herokuapp.com/wildmatch)](https://crates.io/crates/wildmatch)
-[![](https://badgen.net/crates/d/wildmatch)](https://crates.io/crates/wildmatch)
-[![Build Status](https://gitlab.com/becheran/wildmatch_ci/badges/master/pipeline.svg)](https://gitlab.com/becheran/wildmatch_ci/pipelines)
-[![](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Codecov branch](https://img.shields.io/codecov/c/github/becheran/wildmatch/master)](https://codecov.io/gh/becheran/wildmatch)
+[![build status](https://github.com/becheran/wildmatch/workflows/Build/badge.svg)](https://github.com/becheran/wildmatch/actions?workflow=Build)
+[![docs](https://docs.rs/wildmatch/badge.svg)](https://docs.rs/wildmatch)
+[![downloads](https://img.shields.io/crates/v/wildmatch.svg?color=orange)](https://crates.io/crates/wildmatch)
+[![crate](https://badgen.net/crates/d/wildmatch)](https://crates.io/crates/wildmatch)
+[![license](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![codecov](https://img.shields.io/codecov/c/github/becheran/wildmatch/master)](https://codecov.io/gh/becheran/wildmatch)
 
 Match strings against a simple wildcard pattern. Tests a wildcard pattern `p` against an input string `s`. Returns true only when `p` matches the entirety of `s`.
 
