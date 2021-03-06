@@ -4,7 +4,7 @@ version = "1.0.14-alpha.0"
 authors = ["Armin Becher <armin.becher@gmail.com>"]
 edition = "2018"
 description = "Simple string matching  with questionmark and star wildcard operator."
-keywords = [ "globbing", "matching", "questionmark", "star", "string-matching"]
+keywords = ["globbing", "matching", "questionmark", "star", "string-matching"]
 readme = "README.md"
 license = "MIT"
 categories = ["algorithms"]
@@ -14,3 +14,9 @@ repository = "https://github.com/becheran/wildmatch"
 
 [dev-dependencies]
 ntest = "0.7.3"
+criterion = "0.3.4"
+regex = "1.4.3"
+
+[[bench]]
+name = "patterns"
+harness = false
