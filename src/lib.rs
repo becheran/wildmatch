@@ -25,8 +25,10 @@
 //! assert!(!WildMatch::new("?").is_match("cat"));
 //! ```
 
+use std::fmt;
+
 /// Wildcard matcher used to match strings.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct WildMatch {
     pattern: Vec<State>,
 }
@@ -37,16 +39,23 @@ struct State {
     has_wildcard: bool,
 }
 
-impl ToString for WildMatch {
-    fn to_string(&self) -> String {
-        return self.pattern.iter().filter_map(|f| f.next_char).collect();
+impl fmt::Display for WildMatch {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use std::fmt::Write;
+
+        for state in &self.pattern {
+            if let Some(c) = state.next_char {
+                f.write_char(c)?;
+            }
+        }
+        Ok(())
     }
 }
 
 impl WildMatch {
     /// Constructor with pattern which can be used for matching.
     pub fn new(pattern: &str) -> WildMatch {
-        let mut simplified: Vec<State> = Vec::new();
+        let mut simplified: Vec<State> = Vec::with_capacity(pattern.len());
         let mut prev_was_star = false;
         for current_char in pattern.chars() {
             match current_char {
@@ -64,7 +73,7 @@ impl WildMatch {
             }
         }
 
-        if pattern.chars().count() > 0 {
+        if !pattern.is_empty() {
             let final_state = State {
                 next_char: None,
                 has_wildcard: prev_was_star,
@@ -113,7 +122,13 @@ impl WildMatch {
                 }
             }
         }
-        return self.pattern.get(pattern_idx).unwrap().next_char.is_none();
+        self.pattern[pattern_idx].next_char.is_none()
+    }
+}
+
+impl<'a> PartialEq<&'a str> for WildMatch {
+    fn eq(&self, &other: &&'a str) -> bool {
+        self.is_match(other)
     }
 }
 
