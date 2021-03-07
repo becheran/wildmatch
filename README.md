@@ -17,6 +17,15 @@ See also the example described on [wikipedia](https://en.wikipedia.org/wiki/Matc
 
 For example the pattern `ca?` will match `cat` or `car`. The pattern `https://*` will match all https urls, such as `https://google.de` or `https://github.com/becheran/wildmatch`.
 
+Compared to the [rust regex library](https://crates.io/crates/regex), wildmatch pattern compile much faster and match with about the same speed.
+
+| Benchmark | wildmatch | regex |
+| ---- | ----:| ----: |
+| compiling/text | 990 ns | 476,980 ns
+| compiling/complex | 122 ns | 177,510 ns
+| matching/text | 568 ns | 655 ns
+| matching/complex | 664 ns | 575 ns
+
 The library only depends on the rust [`stdlib`](https://doc.rust-lang.org/std/).
 
 See the [documentation](https://docs.rs/wildmatch) for usage and more examples.
