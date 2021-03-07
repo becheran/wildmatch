@@ -89,7 +89,7 @@ impl WildMatch {
     /// Indicates whether the matcher finds a match in the input string.
     pub fn is_match(&self, input: &str) -> bool {
         if self.pattern.is_empty() {
-            return input.is_empty() 
+            return input.is_empty();
         }
         let mut pattern_idx = 0;
         for input_char in input.chars() {
@@ -107,6 +107,10 @@ impl WildMatch {
                 }
                 _ => {
                     // Go back to last state with wildcard
+                    if pattern_idx == 0 {
+                        return false;
+                    };
+                    pattern_idx -= 1;
                     while let Some(pattern) = self.pattern.get(pattern_idx) {
                         if pattern.has_wildcard {
                             // Match last char again
@@ -234,7 +238,6 @@ mod tests {
         assert!(m != "bar");
         assert!(m == "");
     }
-
 
     #[test]
     fn compare_default() {
