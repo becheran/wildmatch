@@ -30,24 +30,22 @@ use std::fmt;
 /// Wildcard matcher used to match strings.
 #[derive(Debug, Clone, Default)]
 pub struct WildMatch {
-    pattern: Vec<State>,
-}
-
-#[derive(Debug, Clone)]
-struct State {
-    next_char: Option<char>,
-    has_wildcard: bool,
+    // next characters. Final state if none
+    pattern: Vec<Option<char>>,
+    // wildcard indexes
+    wildcards: Vec<usize>,
 }
 
 impl fmt::Display for WildMatch {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use std::fmt::Write;
 
-        for state in &self.pattern {
-            if let Some(c) = state.next_char {
-                f.write_char(c)?;
+        for next_char in &self.pattern {
+            if next_char.is_some() {
+                f.write_char(next_char.unwrap())?;
             }
         }
+
         Ok(())
     }
 }
@@ -55,77 +53,86 @@ impl fmt::Display for WildMatch {
 impl WildMatch {
     /// Constructor with pattern which can be used for matching.
     pub fn new(pattern: &str) -> WildMatch {
-        let mut simplified: Vec<State> = Vec::with_capacity(pattern.len());
+        let mut simplified: Vec<Option<char>> = Vec::with_capacity(pattern.len());
+        let max_stars = (pattern.len() >> 1) + 1;
+        let mut wildcards: Vec<usize> = Vec::with_capacity(max_stars);
+        
         let mut prev_was_star = false;
+        let mut idx = 0;
         for current_char in pattern.chars() {
             match current_char {
                 '*' => {
                     prev_was_star = true;
                 }
                 _ => {
-                    let s = State {
-                        next_char: Some(current_char),
-                        has_wildcard: prev_was_star,
-                    };
-                    simplified.push(s);
+                    simplified.push(Some(current_char));
+                    if prev_was_star {
+                        wildcards.push(idx);
+                    }
                     prev_was_star = false;
+                    idx += 1;
                 }
             }
         }
 
         if !pattern.is_empty() {
-            let final_state = State {
-                next_char: None,
-                has_wildcard: prev_was_star,
-            };
+            let final_state = None;
+            if prev_was_star {
+                wildcards.push(idx);
+            }
             simplified.push(final_state);
         }
 
         WildMatch {
             pattern: simplified,
+            wildcards: wildcards,
         }
     }
 
     /// Indicates whether the matcher finds a match in the input string.
     pub fn is_match(&self, input: &str) -> bool {
         if self.pattern.is_empty() {
-            return input.is_empty() 
+            return input.is_empty();
         }
         let mut pattern_idx = 0;
+        let mut wildcard_idx = 0;
         for input_char in input.chars() {
             match self.pattern.get(pattern_idx) {
                 None => {
                     return false;
                 }
-                Some(p) if p.next_char == Some('?') || p.next_char == Some(input_char) => {
+                Some(next_char) if *next_char == Some('?') || *next_char == Some(input_char) => {
                     pattern_idx += 1;
                 }
-                Some(p) if p.has_wildcard => {
-                    if p.next_char == None {
+                Some(next_char) if self.wildcards.get(wildcard_idx) == Some(&pattern_idx) => {
+                    if *next_char == None {
                         return true;
                     }
                 }
                 _ => {
                     // Go back to last state with wildcard
-                    while let Some(pattern) = self.pattern.get(pattern_idx) {
-                        if pattern.has_wildcard {
-                            // Match last char again
-                            if pattern.next_char == Some('?')
-                                || pattern.next_char == Some(input_char)
-                            {
-                                pattern_idx += 1;
-                            }
-                            break;
+                    if let Some(idx_with_wildcard) = self.wildcards.get(wildcard_idx) {
+                        if *idx_with_wildcard > pattern_idx{
+                            return false
                         }
-                        if pattern_idx == 0 {
-                            return false;
-                        };
-                        pattern_idx -= 1;
+                        pattern_idx = *idx_with_wildcard;
+                        let next_char = self.pattern[pattern_idx];
+                        if next_char == Some('?') || next_char == Some(input_char) {
+                            pattern_idx += 1;
+                        }
+                    } else {
+                        return false;
                     }
                 }
             }
+            // Increase wildcard_idx if needed
+            if let Some(idx_with_wildcard) = self.wildcards.get(wildcard_idx) {
+                if *idx_with_wildcard < pattern_idx{
+                    wildcard_idx += 1;
+                }
+            }
         }
-        self.pattern[pattern_idx].next_char.is_none()
+        self.pattern[pattern_idx].is_none()
     }
 }
 
@@ -234,7 +241,6 @@ mod tests {
         assert!(m != "bar");
         assert!(m == "");
     }
-
 
     #[test]
     fn compare_default() {
