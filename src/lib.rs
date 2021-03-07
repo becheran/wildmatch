@@ -88,6 +88,9 @@ impl WildMatch {
 
     /// Indicates whether the matcher finds a match in the input string.
     pub fn is_match(&self, input: &str) -> bool {
+        if self.pattern.is_empty() {
+            return input.is_empty() 
+        }
         let mut pattern_idx = 0;
         for input_char in input.chars() {
             match self.pattern.get(pattern_idx) {
@@ -210,9 +213,34 @@ mod tests {
     #[test_case("*?2", "332")]
     #[test_case("*?2", "3332")]
     #[test_case("33*", "333")]
+    #[test_case("da*da*da*", "daaadabadmanda")]
+    #[test_case("*?", "xx")]
     fn match_long(pattern: &str, expected: &str) {
         let m = WildMatch::new(pattern);
         assert!(m.is_match(expected))
+    }
+
+    #[test]
+    fn compare_via_equal() {
+        let m = WildMatch::new("c?*");
+        assert!(m == "cat");
+        assert!(m == "car");
+        assert!(m != "dog");
+    }
+
+    #[test]
+    fn compare_empty() {
+        let m: WildMatch = WildMatch::new("");
+        assert!(m != "bar");
+        assert!(m == "");
+    }
+
+
+    #[test]
+    fn compare_default() {
+        let m: WildMatch = Default::default();
+        assert!(m == "");
+        assert!(m != "bar");
     }
 
     #[test]
