@@ -1,6 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use regex::Regex;
 use wildmatch::WildMatch;
+use glob::Pattern;
 
 const TEXT: &str = "Lorem ipsum dolor sit amet, \
 consetetur sadipscing elitr, sed diam nonumy eirmod tempor \
@@ -40,6 +41,13 @@ pub fn compiling(c: &mut Criterion) {
     group.bench_function("compile complex (regex)", |b| {
         b.iter(|| Regex::new(black_box(MOST_COMPLEX_REGEX)).unwrap())
     });
+
+    group.bench_function("compile text (glob)", |b| {
+        b.iter(|| Pattern::new(black_box(FULL_TEXT_PATTERN)))
+    });
+    group.bench_function("compile complex (glob)", |b| {
+        b.iter(|| Pattern::new(black_box(MOST_COMPLEX_PATTERN)))
+    });
 }
 
 pub fn matching(c: &mut Criterion) {
@@ -47,6 +55,8 @@ pub fn matching(c: &mut Criterion) {
     let pattern2 = WildMatch::new(COMPLEX_PATTERN);
     let regex1 = Regex::new(FULL_TEXT_REGEX).unwrap();
     let regex2 = Regex::new(COMPLEX_REGEX).unwrap();
+    let glob1 = Pattern::new(FULL_TEXT_PATTERN).unwrap();
+    let glob2 = Pattern::new(COMPLEX_PATTERN).unwrap();
 
     let mut group = c.benchmark_group("matching");
 
@@ -62,6 +72,13 @@ pub fn matching(c: &mut Criterion) {
     });
     group.bench_function("match complex (regex)", |b| {
         b.iter(|| regex2.is_match(black_box(TEXT)))
+    });
+
+    group.bench_function("match text (glob)", |b| {
+        b.iter(|| glob1.matches(black_box(TEXT)))
+    });
+    group.bench_function("match complex (glob)", |b| {
+        b.iter(|| glob2.matches(black_box(TEXT)))
     });
 }
 

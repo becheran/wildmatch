@@ -16,6 +16,7 @@ repository = "https://github.com/becheran/wildmatch"
 ntest = "0.7.3"
 criterion = "0.3.4"
 regex = "1.4.3"
+glob = "0.3.0"
 
 [[bench]]
 name = "patterns"
