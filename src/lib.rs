@@ -11,18 +11,18 @@
 //! Examples matching wildcards:
 //! ``` rust
 //! # extern crate wildmatch; use wildmatch::WildMatch;
-//! assert!(WildMatch::new("cat").is_match("cat"));
-//! assert!(WildMatch::new("*cat*").is_match("dog_cat_dog"));
-//! assert!(WildMatch::new("c?t").is_match("cat"));
-//! assert!(WildMatch::new("c?t").is_match("cot"));
+//! assert!(WildMatch::new("cat").matches("cat"));
+//! assert!(WildMatch::new("*cat*").matches("dog_cat_dog"));
+//! assert!(WildMatch::new("c?t").matches("cat"));
+//! assert!(WildMatch::new("c?t").matches("cot"));
 //! ```
 //! Examples not matching wildcards:
 //! ``` rust
 //! # extern crate wildmatch; use wildmatch::WildMatch;
-//! assert!(!WildMatch::new("dog").is_match("cat"));
-//! assert!(!WildMatch::new("*d").is_match("cat"));
-//! assert!(!WildMatch::new("????").is_match("cat"));
-//! assert!(!WildMatch::new("?").is_match("cat"));
+//! assert!(!WildMatch::new("dog").matches("cat"));
+//! assert!(!WildMatch::new("*d").matches("cat"));
+//! assert!(!WildMatch::new("????").matches("cat"));
+//! assert!(!WildMatch::new("?").matches("cat"));
 //! ```
 
 use std::fmt;
@@ -86,8 +86,13 @@ impl WildMatch {
         }
     }
 
-    /// Indicates whether the matcher finds a match in the input string.
+    #[deprecated(since = "2.0.0", note = "use `matches` instead")]
     pub fn is_match(&self, input: &str) -> bool {
+        self.matches(input)
+    }
+
+    /// Returns true if pattern applies to the given input string
+    pub fn matches(&self, input: &str) -> bool {
         if self.pattern.is_empty() {
             return input.is_empty();
         }
@@ -135,7 +140,7 @@ impl WildMatch {
 
 impl<'a> PartialEq<&'a str> for WildMatch {
     fn eq(&self, &other: &&'a str) -> bool {
-        self.is_match(other)
+        self.matches(other)
     }
 }
 
@@ -157,7 +162,7 @@ mod tests {
     #[test_case("cat*")]
     fn is_match(pattern: &str) {
         let m = WildMatch::new(pattern);
-        assert!(m.is_match("cat"));
+        assert!(m.matches("cat"));
     }
 
     #[test_case("*d*")]
@@ -175,7 +180,7 @@ mod tests {
     #[test_case("cat*dog")]
     fn no_match(pattern: &str) {
         let m = WildMatch::new(pattern);
-        assert_false!(m.is_match("cat"));
+        assert_false!(m.matches("cat"));
     }
 
     #[test_case("cat?", "wildcats")]
@@ -189,7 +194,7 @@ mod tests {
     #[test_case("???", "wildcats")]
     fn no_match_long(pattern: &str, expected: &str) {
         let m = WildMatch::new(pattern);
-        assert_false!(m.is_match(expected))
+        assert_false!(m.matches(expected))
     }
 
     #[test_case("*cat*", "d&(*og_cat_dog")]
@@ -221,7 +226,7 @@ mod tests {
     #[test_case("*?", "xx")]
     fn match_long(pattern: &str, expected: &str) {
         let m = WildMatch::new(pattern);
-        assert!(m.is_match(expected))
+        assert!(m.matches(expected));
     }
 
     #[test]
