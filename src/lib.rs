@@ -44,6 +44,9 @@ impl fmt::Display for WildMatch {
         use std::fmt::Write;
 
         for state in &self.pattern {
+            if state.has_wildcard {
+                f.write_char('*')?;
+            }
             if let Some(c) = state.next_char {
                 f.write_char(c)?;
             }
@@ -271,6 +274,19 @@ mod tests {
     fn to_string_f() {
         let m = WildMatch::new("F");
         assert_eq!("F", m.to_string());
+    }
+
+    #[test]
+    fn to_string_with_star() {
+        assert_eq!("a*bc", WildMatch::new("a*bc").to_string());
+        assert_eq!("a*bc", WildMatch::new("a**bc").to_string());
+        assert_eq!("a*bc*", WildMatch::new("a*bc*").to_string());
+    }
+
+    #[test]
+    fn to_string_with_question_sign() {
+        assert_eq!("a?bc", WildMatch::new("a?bc").to_string());
+        assert_eq!("a??bc", WildMatch::new("a??bc").to_string());
     }
 
     #[test]
