@@ -258,6 +258,7 @@ mod tests {
         assert_eq!(WildMatch::new("a*bc"), WildMatch::new("a*bc"));
         assert_ne!(WildMatch::new("abc"), WildMatch::new("a*bc"));
         assert_ne!(WildMatch::new("a*bc"), WildMatch::new("a?bc"));
+        assert_eq!(WildMatch::new("a***c"), WildMatch::new("a*c"));
     }
 
     #[test]
