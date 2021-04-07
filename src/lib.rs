@@ -28,12 +28,12 @@
 use std::fmt;
 
 /// Wildcard matcher used to match strings.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct WildMatch {
     pattern: Vec<State>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 struct State {
     next_char: Option<char>,
     has_wildcard: bool,
@@ -249,6 +249,15 @@ mod tests {
         let m: WildMatch = Default::default();
         assert!(m == "");
         assert!(m != "bar");
+    }
+
+    #[test]
+    fn compare_wild_match() {
+        assert_eq!(WildMatch::default(), WildMatch::new(""));
+        assert_eq!(WildMatch::new("abc"), WildMatch::new("abc"));
+        assert_eq!(WildMatch::new("a*bc"), WildMatch::new("a*bc"));
+        assert_ne!(WildMatch::new("abc"), WildMatch::new("a*bc"));
+        assert_ne!(WildMatch::new("a*bc"), WildMatch::new("a?bc"));
     }
 
     #[test]
