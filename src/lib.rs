@@ -100,12 +100,26 @@ impl WildMatch {
             return input.is_empty();
         }
         let mut pattern_idx = 0;
-        for input_char in input.chars() {
+        const NONE: usize = usize::MAX;
+        let mut last_wildcard_idx = NONE;
+        let mut questionmark_since_last_wildcard = false;
+        for (input_idx, input_char) in input.chars().enumerate() {
             match self.pattern.get(pattern_idx) {
                 None => {
                     return false;
                 }
-                Some(p) if p.next_char == Some('?') || p.next_char == Some(input_char) => {
+                Some(p) if p.next_char == Some('?') => {
+                    if p.has_wildcard {
+                        last_wildcard_idx = pattern_idx;
+                    }
+                    pattern_idx += 1;
+                    questionmark_since_last_wildcard = true;
+                }
+                Some(p) if p.next_char == Some(input_char) => {
+                    if p.has_wildcard {
+                        last_wildcard_idx = pattern_idx;
+                        questionmark_since_last_wildcard = false;
+                    }
                     pattern_idx += 1;
                 }
                 Some(p) if p.has_wildcard => {
@@ -114,25 +128,33 @@ impl WildMatch {
                     }
                 }
                 _ => {
-                    // Go back to last state with wildcard
-                    if pattern_idx == 0 {
+                    if last_wildcard_idx == NONE {
                         return false;
-                    };
-                    pattern_idx -= 1;
-                    while let Some(pattern) = self.pattern.get(pattern_idx) {
-                        if pattern.has_wildcard {
-                            // Match last char again
-                            if pattern.next_char == Some('?')
-                                || pattern.next_char == Some(input_char)
+                    }
+                    if questionmark_since_last_wildcard {
+                        let matched_since_last_star = pattern_idx - last_wildcard_idx;
+                        let iter_start_idx = (input_idx - matched_since_last_star) + 1;
+                        let iter = input
+                            .chars()
+                            .skip(iter_start_idx)
+                            .take(matched_since_last_star);
+                        // See issue #8
+                        pattern_idx = last_wildcard_idx;
+                        for old_input_char in iter {
+                            if self.pattern[pattern_idx].next_char == Some('?')
+                                || self.pattern[pattern_idx].next_char == Some(old_input_char)
                             {
                                 pattern_idx += 1;
                             }
-                            break;
                         }
-                        if pattern_idx == 0 {
-                            return false;
-                        };
-                        pattern_idx -= 1;
+                    } else {
+                        pattern_idx = last_wildcard_idx;
+                        // Match last char again
+                        if self.pattern[pattern_idx].next_char == Some('?')
+                            || self.pattern[pattern_idx].next_char == Some(input_char)
+                        {
+                            pattern_idx += 1;
+                        }
                     }
                 }
             }
@@ -200,6 +222,9 @@ mod tests {
         assert_false!(m.matches(expected))
     }
 
+    #[test_case("*o?a*", "foobar")]
+    #[test_case("*ooo?ar", "foooobar")]
+    #[test_case("*o?a*r", "foobar")]
     #[test_case("*cat*", "d&(*og_cat_dog")]
     #[test_case("*?*", "d&(*og_cat_dog")]
     #[test_case("*a*", "d&(*og_cat_dog")]
