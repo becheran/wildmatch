@@ -31,6 +31,7 @@ use std::fmt;
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct WildMatch {
     pattern: Vec<State>,
+    max_questionmarks: usize,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -60,12 +61,19 @@ impl WildMatch {
     pub fn new(pattern: &str) -> WildMatch {
         let mut simplified: Vec<State> = Vec::with_capacity(pattern.len());
         let mut prev_was_star = false;
+        let mut max_questionmarks: usize = 0;
+        let mut questionmarks: usize = 0;
         for current_char in pattern.chars() {
             match current_char {
                 '*' => {
                     prev_was_star = true;
+                    max_questionmarks = std::cmp::max(max_questionmarks, questionmarks);
+                    questionmarks = 0;
                 }
                 _ => {
+                    if current_char == '?' {
+                        questionmarks += 1;
+                    }
                     let s = State {
                         next_char: Some(current_char),
                         has_wildcard: prev_was_star,
@@ -86,6 +94,7 @@ impl WildMatch {
 
         WildMatch {
             pattern: simplified,
+            max_questionmarks,
         }
     }
 
@@ -102,8 +111,8 @@ impl WildMatch {
         let mut pattern_idx = 0;
         const NONE: usize = usize::MAX;
         let mut last_wildcard_idx = NONE;
-        let mut questionmark_since_last_wildcard = false;
-        for (input_idx, input_char) in input.chars().enumerate() {
+        let mut questionmark_matches: Vec<char> = Vec::with_capacity(self.max_questionmarks);
+        for input_char in input.chars() {
             match self.pattern.get(pattern_idx) {
                 None => {
                     return false;
@@ -113,12 +122,12 @@ impl WildMatch {
                         last_wildcard_idx = pattern_idx;
                     }
                     pattern_idx += 1;
-                    questionmark_since_last_wildcard = true;
+                    questionmark_matches.push(input_char);
                 }
                 Some(p) if p.next_char == Some(input_char) => {
                     if p.has_wildcard {
                         last_wildcard_idx = pattern_idx;
-                        questionmark_since_last_wildcard = false;
+                        questionmark_matches.clear();
                     }
                     pattern_idx += 1;
                 }
@@ -131,30 +140,39 @@ impl WildMatch {
                     if last_wildcard_idx == NONE {
                         return false;
                     }
-                    if questionmark_since_last_wildcard {
-                        let matched_since_last_star = pattern_idx - last_wildcard_idx;
-                        let iter_start_idx = (input_idx - matched_since_last_star) + 1;
-                        let iter = input
-                            .chars()
-                            .skip(iter_start_idx)
-                            .take(matched_since_last_star);
-                        // See issue #8
+                    if !questionmark_matches.is_empty() {
+                        // Try to match a different set for questionmark
+                        let mut questionmark_idx = 0;
+                        let current_idx = pattern_idx;
                         pattern_idx = last_wildcard_idx;
-                        for old_input_char in iter {
-                            if self.pattern[pattern_idx].next_char == Some('?')
-                                || self.pattern[pattern_idx].next_char == Some(old_input_char)
-                            {
+                        for prev_state in self.pattern[last_wildcard_idx + 1..current_idx].iter() {
+                            if self.pattern[pattern_idx].next_char == Some('?') {
                                 pattern_idx += 1;
+                                continue;
+                            }
+                            let mut prev_input_char = prev_state.next_char;
+                            if prev_input_char == Some('?') {
+                                prev_input_char = Some(questionmark_matches[questionmark_idx]);
+                                questionmark_idx += 1;
+                            }
+                            if self.pattern[pattern_idx].next_char == prev_input_char {
+                                pattern_idx += 1;
+                            } else {
+                                pattern_idx = last_wildcard_idx;
+                                questionmark_matches.clear();
+                                break;
                             }
                         }
                     } else {
+                        // Directly go back to the last wildcard
                         pattern_idx = last_wildcard_idx;
-                        // Match last char again
-                        if self.pattern[pattern_idx].next_char == Some('?')
-                            || self.pattern[pattern_idx].next_char == Some(input_char)
-                        {
-                            pattern_idx += 1;
-                        }
+                    }
+
+                    // Match last char again
+                    if self.pattern[pattern_idx].next_char == Some('?')
+                        || self.pattern[pattern_idx].next_char == Some(input_char)
+                    {
+                        pattern_idx += 1;
                     }
                 }
             }
@@ -222,6 +240,9 @@ mod tests {
         assert_false!(m.matches(expected))
     }
 
+    #[test_case("*???a", "bbbba")]
+    #[test_case("*???a", "bbbbba")]
+    #[test_case("*???a", "bbbbbba")]
     #[test_case("*o?a*", "foobar")]
     #[test_case("*ooo?ar", "foooobar")]
     #[test_case("*o?a*r", "foobar")]
@@ -255,6 +276,19 @@ mod tests {
     fn match_long(pattern: &str, expected: &str) {
         let m = WildMatch::new(pattern);
         assert!(m.matches(expected));
+    }
+
+    #[test]
+    fn complex_pattern() {
+        const TEXT: &str = "Lorem ipsum dolor sit amet, \
+        consetetur sadipscing elitr, sed diam nonumy eirmod tempor \
+        invidunt ut labore et dolore magna aliquyam erat, sed diam \
+        voluptua. At vero eos et accusam et justo duo dolores et ea \
+        rebum. Stet clita kasd gubergren, no sea takimata sanctus est \
+        Lorem ipsum dolor sit amet.";
+        const COMPLEX_PATTERN: &str = "Lorem?ipsum*dolore*ea* ?????ata*.";
+        let m = WildMatch::new(COMPLEX_PATTERN);
+        assert!(m.matches(TEXT));
     }
 
     #[test]
