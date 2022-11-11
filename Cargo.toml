@@ -13,8 +13,8 @@ repository = "https://github.com/becheran/wildmatch"
 [dependencies]
 
 [dev-dependencies]
-ntest = "0.7.3"
-criterion = "0.3.4"
+ntest = "0.9.0"
+criterion = "0.4.0"
 regex = "1.4.3"
 glob = "0.3.0"
 
