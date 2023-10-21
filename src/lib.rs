@@ -28,7 +28,7 @@
 //! assert!(!GlobWildMatch::new("????").matches("cat"));
 //! assert!(!GlobWildMatch::new("?").matches("cat"));
 //! ```
-//! 
+//!
 //! You can specify custom `char` values for the single and multi-character
 //! wildcards. For example, to use `%` as the multi-character wildcard and
 //! `_` as the single-character wildcard:
@@ -44,7 +44,7 @@ use std::fmt;
 pub type GlobWildMatch = WildMatch<'*', '?'>;
 
 /// Wildcard matcher used to match strings.
-/// 
+///
 /// `MULTI_WILDCARD` is the character used to represent a
 /// multiple-character wildcard (e.g., `*`), and `SINGLE_WILDCARD` is the
 /// character used to represent a single-character wildcard (e.g., `?`).
@@ -60,7 +60,9 @@ struct State {
     has_wildcard: bool,
 }
 
-impl <const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char> fmt::Display for WildMatch<MULTI_WILDCARD, SINGLE_WILDCARD> {
+impl<const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char> fmt::Display
+    for WildMatch<MULTI_WILDCARD, SINGLE_WILDCARD>
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use std::fmt::Write;
 
@@ -76,7 +78,9 @@ impl <const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char> fmt::Display for 
     }
 }
 
-impl <const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char> WildMatch<MULTI_WILDCARD, SINGLE_WILDCARD> {
+impl<const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char>
+    WildMatch<MULTI_WILDCARD, SINGLE_WILDCARD>
+{
     /// Constructor with pattern which can be used for matching.
     pub fn new(pattern: &str) -> WildMatch<MULTI_WILDCARD, SINGLE_WILDCARD> {
         let mut simplified: Vec<State> = Vec::with_capacity(pattern.len());
@@ -199,7 +203,9 @@ impl <const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char> WildMatch<MULTI_W
     }
 }
 
-impl<'a, const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char> PartialEq<&'a str> for WildMatch<MULTI_WILDCARD, SINGLE_WILDCARD> {
+impl<'a, const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char> PartialEq<&'a str>
+    for WildMatch<MULTI_WILDCARD, SINGLE_WILDCARD>
+{
     fn eq(&self, &other: &&'a str) -> bool {
         self.matches(other)
     }
