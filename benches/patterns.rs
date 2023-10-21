@@ -1,6 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use regex::Regex;
-use wildmatch::WildMatch;
+use wildmatch::GlobWildMatch;
 use glob::Pattern;
 
 const TEXT: &str = "Lorem ipsum dolor sit amet, \
@@ -29,10 +29,10 @@ pub fn compiling(c: &mut Criterion) {
     let mut group = c.benchmark_group("compiling");
 
     group.bench_function("compile text (wildmatch)", |b| {
-        b.iter(|| WildMatch::new(black_box(FULL_TEXT_PATTERN)))
+        b.iter(|| GlobWildMatch::new(black_box(FULL_TEXT_PATTERN)))
     });
     group.bench_function("compile complex (wildmatch)", |b| {
-        b.iter(|| WildMatch::new(black_box(MOST_COMPLEX_PATTERN)))
+        b.iter(|| GlobWildMatch::new(black_box(MOST_COMPLEX_PATTERN)))
     });
 
     group.bench_function("compile text (regex)", |b| {
@@ -51,8 +51,8 @@ pub fn compiling(c: &mut Criterion) {
 }
 
 pub fn matching(c: &mut Criterion) {
-    let pattern1 = WildMatch::new(FULL_TEXT_PATTERN);
-    let pattern2 = WildMatch::new(COMPLEX_PATTERN);
+    let pattern1 = GlobWildMatch::new(FULL_TEXT_PATTERN);
+    let pattern2 = GlobWildMatch::new(COMPLEX_PATTERN);
     let regex1 = Regex::new(FULL_TEXT_REGEX).unwrap();
     let regex2 = Regex::new(COMPLEX_REGEX).unwrap();
     let glob1 = Pattern::new(FULL_TEXT_PATTERN).unwrap();

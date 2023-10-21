@@ -1,35 +1,55 @@
-//! Match strings against a simple wildcard pattern.
-//! Tests a wildcard pattern `p` against an input string `s`. Returns true only when `p` matches the entirety of `s`.
+//! Match strings against a simple wildcard pattern. Tests a wildcard
+//! pattern `p` against an input string `s`. Returns true only when `p`
+//! matches the entirety of `s`.
 //!
-//! See also the example described on [wikipedia](https://en.wikipedia.org/wiki/Matching_wildcards) for matching wildcards.
+//! See also the example described on
+//! [wikipedia](https://en.wikipedia.org/wiki/Matching_wildcards) for
+//! matching wildcards.
 //!
 //! No escape characters are defined.
 //!
 //! - `?` matches exactly one occurrence of any character.
-//! - `*` matches arbitrary many (including zero) occurrences of any character.
+//! - `*` matches arbitrary many (including zero) occurrences of any
+//!   character.
 //!
 //! Examples matching wildcards:
 //! ``` rust
-//! # extern crate wildmatch; use wildmatch::WildMatch;
-//! assert!(WildMatch::new("cat").matches("cat"));
-//! assert!(WildMatch::new("*cat*").matches("dog_cat_dog"));
-//! assert!(WildMatch::new("c?t").matches("cat"));
-//! assert!(WildMatch::new("c?t").matches("cot"));
+//! # extern crate wildmatch; use wildmatch::GlobWildMatch;
+//! assert!(GlobWildMatch::new("cat").matches("cat"));
+//! assert!(GlobWildMatch::new("*cat*").matches("dog_cat_dog"));
+//! assert!(GlobWildMatch::new("c?t").matches("cat"));
+//! assert!(GlobWildMatch::new("c?t").matches("cot"));
 //! ```
 //! Examples not matching wildcards:
 //! ``` rust
+//! # extern crate wildmatch; use wildmatch::GlobWildMatch;
+//! assert!(!GlobWildMatch::new("dog").matches("cat"));
+//! assert!(!GlobWildMatch::new("*d").matches("cat"));
+//! assert!(!GlobWildMatch::new("????").matches("cat"));
+//! assert!(!GlobWildMatch::new("?").matches("cat"));
+//! ```
+//! 
+//! You can specify custom `char` values for the single and multi-character
+//! wildcards. For example, to use `%` as the multi-character wildcard and
+//! `_` as the single-character wildcard:
+//! ```rust
 //! # extern crate wildmatch; use wildmatch::WildMatch;
-//! assert!(!WildMatch::new("dog").matches("cat"));
-//! assert!(!WildMatch::new("*d").matches("cat"));
-//! assert!(!WildMatch::new("????").matches("cat"));
-//! assert!(!WildMatch::new("?").matches("cat"));
+//! assert!(WildMatch::<'%', '_'>::new("%cat%").matches("dog_cat_dog"));
 //! ```
 
 use std::fmt;
 
+/// A wildcard matcher using `*` as the multi-character wildcard and `?` as
+/// the single-character wildcard.
+pub type GlobWildMatch = WildMatch<'*', '?'>;
+
 /// Wildcard matcher used to match strings.
+/// 
+/// `MULTI_WILDCARD` is the character used to represent a
+/// multiple-character wildcard (e.g., `*`), and `SINGLE_WILDCARD` is the
+/// character used to represent a single-character wildcard (e.g., `?`).
 #[derive(Debug, Clone, PartialEq, Default)]
-pub struct WildMatch {
+pub struct WildMatch<const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char> {
     pattern: Vec<State>,
     max_questionmarks: usize,
 }
@@ -40,13 +60,13 @@ struct State {
     has_wildcard: bool,
 }
 
-impl fmt::Display for WildMatch {
+impl <const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char> fmt::Display for WildMatch<MULTI_WILDCARD, SINGLE_WILDCARD> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use std::fmt::Write;
 
         for state in &self.pattern {
             if state.has_wildcard {
-                f.write_char('*')?;
+                f.write_char(MULTI_WILDCARD)?;
             }
             if let Some(c) = state.next_char {
                 f.write_char(c)?;
@@ -56,31 +76,29 @@ impl fmt::Display for WildMatch {
     }
 }
 
-impl WildMatch {
+impl <const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char> WildMatch<MULTI_WILDCARD, SINGLE_WILDCARD> {
     /// Constructor with pattern which can be used for matching.
-    pub fn new(pattern: &str) -> WildMatch {
+    pub fn new(pattern: &str) -> WildMatch<MULTI_WILDCARD, SINGLE_WILDCARD> {
         let mut simplified: Vec<State> = Vec::with_capacity(pattern.len());
         let mut prev_was_star = false;
         let mut max_questionmarks: usize = 0;
         let mut questionmarks: usize = 0;
         for current_char in pattern.chars() {
-            match current_char {
-                '*' => {
-                    prev_was_star = true;
-                    max_questionmarks = std::cmp::max(max_questionmarks, questionmarks);
-                    questionmarks = 0;
+            if current_char == MULTI_WILDCARD {
+                prev_was_star = true;
+                max_questionmarks = std::cmp::max(max_questionmarks, questionmarks);
+                questionmarks = 0;
+            } else {
+                if current_char == SINGLE_WILDCARD {
+                    questionmarks += 1;
                 }
-                _ => {
-                    if current_char == '?' {
-                        questionmarks += 1;
-                    }
-                    let s = State {
-                        next_char: Some(current_char),
-                        has_wildcard: prev_was_star,
-                    };
-                    simplified.push(s);
-                    prev_was_star = false;
-                }
+
+                let s = State {
+                    next_char: Some(current_char),
+                    has_wildcard: prev_was_star,
+                };
+                simplified.push(s);
+                prev_was_star = false;
             }
         }
 
@@ -117,7 +135,7 @@ impl WildMatch {
                 None => {
                     return false;
                 }
-                Some(p) if p.next_char == Some('?') => {
+                Some(p) if p.next_char == Some(SINGLE_WILDCARD) => {
                     if p.has_wildcard {
                         last_wildcard_idx = pattern_idx;
                     }
@@ -146,12 +164,12 @@ impl WildMatch {
                         let current_idx = pattern_idx;
                         pattern_idx = last_wildcard_idx;
                         for prev_state in self.pattern[last_wildcard_idx + 1..current_idx].iter() {
-                            if self.pattern[pattern_idx].next_char == Some('?') {
+                            if self.pattern[pattern_idx].next_char == Some(SINGLE_WILDCARD) {
                                 pattern_idx += 1;
                                 continue;
                             }
                             let mut prev_input_char = prev_state.next_char;
-                            if prev_input_char == Some('?') {
+                            if prev_input_char == Some(SINGLE_WILDCARD) {
                                 prev_input_char = Some(questionmark_matches[questionmark_idx]);
                                 questionmark_idx += 1;
                             }
@@ -169,7 +187,7 @@ impl WildMatch {
                     }
 
                     // Match last char again
-                    if self.pattern[pattern_idx].next_char == Some('?')
+                    if self.pattern[pattern_idx].next_char == Some(SINGLE_WILDCARD)
                         || self.pattern[pattern_idx].next_char == Some(input_char)
                     {
                         pattern_idx += 1;
@@ -181,7 +199,7 @@ impl WildMatch {
     }
 }
 
-impl<'a> PartialEq<&'a str> for WildMatch {
+impl<'a, const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char> PartialEq<&'a str> for WildMatch<MULTI_WILDCARD, SINGLE_WILDCARD> {
     fn eq(&self, &other: &&'a str) -> bool {
         self.matches(other)
     }
@@ -204,7 +222,7 @@ mod tests {
     #[test_case("*cat")]
     #[test_case("cat*")]
     fn is_match(pattern: &str) {
-        let m = WildMatch::new(pattern);
+        let m = GlobWildMatch::new(pattern);
         assert!(m.matches("cat"));
     }
 
@@ -222,7 +240,7 @@ mod tests {
     #[test_case("cacat")]
     #[test_case("cat*dog")]
     fn no_match(pattern: &str) {
-        let m = WildMatch::new(pattern);
+        let m = GlobWildMatch::new(pattern);
         assert_false!(m.matches("cat"));
     }
 
@@ -236,7 +254,7 @@ mod tests {
     #[test_case(" ", "\t", name = "whitespaceMismatch")]
     #[test_case("???", "wildcats")]
     fn no_match_long(pattern: &str, expected: &str) {
-        let m = WildMatch::new(pattern);
+        let m = GlobWildMatch::new(pattern);
         assert_false!(m.matches(expected))
     }
 
@@ -274,7 +292,7 @@ mod tests {
     #[test_case("da*da*da*", "daaadabadmanda")]
     #[test_case("*?", "xx")]
     fn match_long(pattern: &str, expected: &str) {
-        let m = WildMatch::new(pattern);
+        let m = GlobWildMatch::new(pattern);
         assert!(m.matches(expected));
     }
 
@@ -287,13 +305,26 @@ mod tests {
         rebum. Stet clita kasd gubergren, no sea takimata sanctus est \
         Lorem ipsum dolor sit amet.";
         const COMPLEX_PATTERN: &str = "Lorem?ipsum*dolore*ea* ?????ata*.";
-        let m = WildMatch::new(COMPLEX_PATTERN);
+        let m = GlobWildMatch::new(COMPLEX_PATTERN);
+        assert!(m.matches(TEXT));
+    }
+
+    #[test]
+    fn complex_pattern_alternative_wildcards() {
+        const TEXT: &str = "Lorem ipsum dolor sit amet, \
+        consetetur sadipscing elitr, sed diam nonumy eirmod tempor \
+        invidunt ut labore et dolore magna aliquyam erat, sed diam \
+        voluptua. At vero eos et accusam et justo duo dolores et ea \
+        rebum. Stet clita kasd gubergren, no sea takimata sanctus est \
+        Lorem ipsum dolor sit amet.";
+        const COMPLEX_PATTERN: &str = "Lorem_ipsum%dolore%ea% _____ata%.";
+        let m = WildMatch::<'%', '_'>::new(COMPLEX_PATTERN);
         assert!(m.matches(TEXT));
     }
 
     #[test]
     fn compare_via_equal() {
-        let m = WildMatch::new("c?*");
+        let m = GlobWildMatch::new("c?*");
         assert!(m == "cat");
         assert!(m == "car");
         assert!(m != "dog");
@@ -301,56 +332,56 @@ mod tests {
 
     #[test]
     fn compare_empty() {
-        let m: WildMatch = WildMatch::new("");
+        let m: GlobWildMatch = GlobWildMatch::new("");
         assert!(m != "bar");
         assert!(m == "");
     }
 
     #[test]
     fn compare_default() {
-        let m: WildMatch = Default::default();
+        let m: GlobWildMatch = Default::default();
         assert!(m == "");
         assert!(m != "bar");
     }
 
     #[test]
     fn compare_wild_match() {
-        assert_eq!(WildMatch::default(), WildMatch::new(""));
-        assert_eq!(WildMatch::new("abc"), WildMatch::new("abc"));
-        assert_eq!(WildMatch::new("a*bc"), WildMatch::new("a*bc"));
-        assert_ne!(WildMatch::new("abc"), WildMatch::new("a*bc"));
-        assert_ne!(WildMatch::new("a*bc"), WildMatch::new("a?bc"));
-        assert_eq!(WildMatch::new("a***c"), WildMatch::new("a*c"));
+        assert_eq!(GlobWildMatch::default(), GlobWildMatch::new(""));
+        assert_eq!(GlobWildMatch::new("abc"), GlobWildMatch::new("abc"));
+        assert_eq!(GlobWildMatch::new("a*bc"), GlobWildMatch::new("a*bc"));
+        assert_ne!(GlobWildMatch::new("abc"), GlobWildMatch::new("a*bc"));
+        assert_ne!(GlobWildMatch::new("a*bc"), GlobWildMatch::new("a?bc"));
+        assert_eq!(GlobWildMatch::new("a***c"), GlobWildMatch::new("a*c"));
     }
 
     #[test]
     fn print_string() {
-        let m = WildMatch::new("Foo/Bar");
+        let m = GlobWildMatch::new("Foo/Bar");
         assert_eq!("Foo/Bar", m.to_string());
     }
 
     #[test]
     fn to_string_f() {
-        let m = WildMatch::new("F");
+        let m = GlobWildMatch::new("F");
         assert_eq!("F", m.to_string());
     }
 
     #[test]
     fn to_string_with_star() {
-        assert_eq!("a*bc", WildMatch::new("a*bc").to_string());
-        assert_eq!("a*bc", WildMatch::new("a**bc").to_string());
-        assert_eq!("a*bc*", WildMatch::new("a*bc*").to_string());
+        assert_eq!("a*bc", GlobWildMatch::new("a*bc").to_string());
+        assert_eq!("a*bc", GlobWildMatch::new("a**bc").to_string());
+        assert_eq!("a*bc*", GlobWildMatch::new("a*bc*").to_string());
     }
 
     #[test]
     fn to_string_with_question_sign() {
-        assert_eq!("a?bc", WildMatch::new("a?bc").to_string());
-        assert_eq!("a??bc", WildMatch::new("a??bc").to_string());
+        assert_eq!("a?bc", GlobWildMatch::new("a?bc").to_string());
+        assert_eq!("a??bc", GlobWildMatch::new("a??bc").to_string());
     }
 
     #[test]
     fn to_string_empty() {
-        let m = WildMatch::new("");
+        let m = GlobWildMatch::new("");
         assert_eq!("", m.to_string());
     }
 }
