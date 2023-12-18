@@ -1,7 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use glob::Pattern;
 use regex::Regex;
 use wildmatch::WildMatch;
-use glob::Pattern;
 
 const TEXT: &str = "Lorem ipsum dolor sit amet, \
 consetetur sadipscing elitr, sed diam nonumy eirmod tempor \
