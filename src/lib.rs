@@ -25,7 +25,22 @@
 //! assert!(!WildMatch::new("?").matches("cat"));
 //! ```
 
+#![cfg_attr(not(feature = "std"), no_std)]
+
+#[cfg(all(feature = "std", feature = "no_std"))]
+compile_error!("Exactly one of the feature \"std\" or \"no_std\" must be enabled; both are.");
+#[cfg(not(any(feature = "std", feature = "no_std")))]
+compile_error!("Exactly one of the feature \"std\" or \"no_std\" must be enabled; none is.");
+
+#[cfg(feature = "std")]
 use std::fmt;
+#[cfg(feature = "std")]
+use std::vec::Vec;
+
+#[cfg(not(feature = "std"))]
+use core::fmt;
+#[cfg(not(feature = "std"))]
+use tinyvec::TinyVec as Vec;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -34,12 +49,15 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct WildMatch {
+    #[cfg(feature = "std")]
     pattern: Vec<State>,
+    #[cfg(not(feature = "std"))]
+    pattern: Vec<[State; 32]>,
     max_questionmarks: usize,
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 struct State {
     next_char: Option<char>,
     has_wildcard: bool,
@@ -47,7 +65,7 @@ struct State {
 
 impl fmt::Display for WildMatch {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use std::fmt::Write;
+        use fmt::Write;
 
         for state in &self.pattern {
             if state.has_wildcard {
@@ -64,7 +82,7 @@ impl fmt::Display for WildMatch {
 impl WildMatch {
     /// Constructor with pattern which can be used for matching.
     pub fn new(pattern: &str) -> WildMatch {
-        let mut simplified: Vec<State> = Vec::with_capacity(pattern.len());
+        let mut simplified = Vec::with_capacity(pattern.len());
         let mut prev_was_star = false;
         let mut max_questionmarks: usize = 0;
         let mut questionmarks: usize = 0;
@@ -72,7 +90,7 @@ impl WildMatch {
             match current_char {
                 '*' => {
                     prev_was_star = true;
-                    max_questionmarks = std::cmp::max(max_questionmarks, questionmarks);
+                    max_questionmarks = core::cmp::max(max_questionmarks, questionmarks);
                     questionmarks = 0;
                 }
                 _ => {
@@ -116,7 +134,10 @@ impl WildMatch {
         let mut pattern_idx = 0;
         const NONE: usize = usize::MAX;
         let mut last_wildcard_idx = NONE;
-        let mut questionmark_matches: Vec<char> = Vec::with_capacity(self.max_questionmarks);
+        #[cfg(feature = "std")]
+        let mut questionmark_matches = Vec::<char>::with_capacity(self.max_questionmarks);
+        #[cfg(not(feature = "std"))]
+        let mut questionmark_matches = Vec::<[char; 10]>::with_capacity(self.max_questionmarks);
         for input_char in input.chars() {
             match self.pattern.get(pattern_idx) {
                 None => {
@@ -326,20 +347,25 @@ mod tests {
         assert_ne!(WildMatch::new("abc"), WildMatch::new("a*bc"));
         assert_ne!(WildMatch::new("a*bc"), WildMatch::new("a?bc"));
         assert_eq!(WildMatch::new("a***c"), WildMatch::new("a*c"));
+        assert_eq!(WildMatch::new("a?bc"), WildMatch::new("a?bc"));
+        assert_ne!(WildMatch::new("a??bc"), WildMatch::new("a?bc"));
     }
 
+    #[cfg(feature = "std")]
     #[test]
     fn print_string() {
         let m = WildMatch::new("Foo/Bar");
         assert_eq!("Foo/Bar", m.to_string());
     }
 
+    #[cfg(feature = "std")]
     #[test]
     fn to_string_f() {
         let m = WildMatch::new("F");
         assert_eq!("F", m.to_string());
     }
 
+    #[cfg(feature = "std")]
     #[test]
     fn to_string_with_star() {
         assert_eq!("a*bc", WildMatch::new("a*bc").to_string());
@@ -347,12 +373,14 @@ mod tests {
         assert_eq!("a*bc*", WildMatch::new("a*bc*").to_string());
     }
 
+    #[cfg(feature = "std")]
     #[test]
     fn to_string_with_question_sign() {
         assert_eq!("a?bc", WildMatch::new("a?bc").to_string());
         assert_eq!("a??bc", WildMatch::new("a??bc").to_string());
     }
 
+    #[cfg(feature = "std")]
     #[test]
     fn to_string_empty() {
         let m = WildMatch::new("");
