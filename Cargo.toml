@@ -14,10 +14,10 @@ repository = "https://github.com/becheran/wildmatch"
 serde = { version = "1.0", features = ["derive"], optional = true }
 
 [dev-dependencies]
-ntest = "0.7.3"
-criterion = "0.3.4"
-regex = "1.4.3"
-glob = "0.3.0"
+ntest = { version = "0.7.3", default-features = false }
+criterion = { version = "0.3.4", default-features = false }
+regex = { version = "1.4.3", default-features = false }
+glob = { version = "0.3.0", default-features = false }
 
 [features]
 serde = ["dep:serde"]
