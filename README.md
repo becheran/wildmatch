@@ -15,6 +15,8 @@ See also the example described on [wikipedia](https://en.wikipedia.org/wiki/Matc
 - `*` matches arbitrary many (including zero) occurrences of any character.
 - No escape characters are defined.
 
+Can also be used with a [custom match pattern](https://docs.rs/wildmatch/latest/wildmatch/struct.WildMatchPattern.html) to define own wildcard patterns for single and multi-character matching.
+
 For example the pattern `ca?` will match `cat` or `car`. The pattern `https://*` will match all https urls, such as `https://google.de` or `https://github.com/becheran/wildmatch`.
 
 Compared to the [rust regex library](https://crates.io/crates/regex), wildmatch pattern compile much faster and match with about the same speed. Compared to [glob pattern](https://docs.rs/glob/0.3.0/glob/struct.Pattern.html) wildmtach is faster in both compile and match time:
