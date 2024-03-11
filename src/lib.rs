@@ -133,6 +133,7 @@ impl<const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char>
         }
         let mut pattern_idx = 0;
         const NONE: usize = usize::MAX;
+        let mut last_matched_char: Option<char> = None;
         let mut last_wildcard_idx = NONE;
         let mut questionmark_matches: Vec<char> = Vec::with_capacity(self.max_questionmarks);
         for input_char in input.chars() {
@@ -153,15 +154,14 @@ impl<const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char>
                         questionmark_matches.clear();
                     }
                     pattern_idx += 1;
+                    last_matched_char = Some(input_char);
                 }
-                Some(p) if p.has_wildcard => {
-                    if p.next_char == None {
-                        return true;
-                    }
-                }
+                Some(p) if p.has_wildcard => {}
                 _ => {
                     if last_wildcard_idx == NONE {
                         return false;
+                    } else if last_matched_char == Some(input_char) {
+                        continue;
                     }
                     if !questionmark_matches.is_empty() {
                         // Try to match a different set for questionmark
@@ -265,6 +265,10 @@ mod tests {
         assert_false!(m.matches(expected))
     }
 
+    #[test_case("*113", "1113")]
+    #[test_case("*113", "113")]
+    #[test_case("*113", "11113")]
+    #[test_case("*113", "111113")]
     #[test_case("*???a", "bbbba")]
     #[test_case("*???a", "bbbbba")]
     #[test_case("*???a", "bbbbbba")]
