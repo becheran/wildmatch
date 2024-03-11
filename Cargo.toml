@@ -1,6 +1,6 @@
 [package]
 name = "wildmatch"
-version = "2.3.0"
+version = "2.3.1"
 authors = ["Armin Becher <armin.becher@gmail.com>"]
 edition = "2018"
 description = "Simple string matching with single- and multi-character wildcard operator."
