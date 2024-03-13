@@ -19,14 +19,14 @@ Can also be used with a [custom match pattern](https://docs.rs/wildmatch/latest/
 
 For example the pattern `ca?` will match `cat` or `car`. The pattern `https://*` will match all https urls, such as `https://google.de` or `https://github.com/becheran/wildmatch`.
 
-Compared to the [rust regex library](https://crates.io/crates/regex), wildmatch pattern compile much faster and match with about the same speed. Compared to [glob pattern](https://docs.rs/glob/0.3.0/glob/struct.Pattern.html) wildmtach is faster in both compile and match time:
+The following table shows a performance benchmarks between wildmatch, [regex](https://crates.io/crates/regex),[glob](https://docs.rs/glob/0.3.0/glob/struct.Pattern.html), and the [regex_lite](https://github.com/rust-lang/regex/tree/master/regex-lite) libraries:
 
 | Benchmark         | wildmatch     | regex      | glob           | regex_lite
-| ----              | ------------: | ---------: | -------------: | ---------: |
-| compiling/text    |    **340 ns** |  39,714 ns |   1,470 ns     | 13,210 ns
-| compiling/complex |     70 ns     | 153,830 ns | 255,780 ns     | **60 ns**
-| matching/text     |    **367 ns** |   3,882 ns |     440 ns     | 6,097 ns
-| matching/complex  |    **376 ns** |  16,024 ns |   1,526 ns     | 3,773 ns
+| ----              | ------------: | ---------: | -------------: | ---------:
+| compiling/text    |    **462 ns** |  39,714 ns |   1,470 ns     | 13,210 ns
+| compiling/complex |     190 ns    | 153,830 ns |     238 ns     | **60 ns**
+| matching/text     |     497 ns    |   4,065 ns | **456 ns**     | 6,097 ns
+| matching/complex  |    **675 ns** |  16,085 ns |   1,426 ns     | 3,773 ns
 
 The library only depends on the rust [`stdlib`](https://doc.rust-lang.org/std/).
 
