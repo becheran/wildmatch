@@ -50,15 +50,7 @@ pub type WildMatch = WildMatchPattern<'*', '?'>;
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct WildMatchPattern<const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char> {
-    pattern: Vec<State>,
-    max_questionmarks: usize,
-}
-
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, PartialEq)]
-struct State {
-    next_char: Option<char>,
-    has_wildcard: bool,
+    pattern: Vec<char>,
 }
 
 impl<const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char> fmt::Display
@@ -66,14 +58,8 @@ impl<const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char> fmt::Display
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use std::fmt::Write;
-
-        for state in &self.pattern {
-            if state.has_wildcard {
-                f.write_char(MULTI_WILDCARD)?;
-            }
-            if let Some(c) = state.next_char {
-                f.write_char(c)?;
-            }
+        for c in &self.pattern {
+            f.write_char(*c)?;
         }
         Ok(())
     }
@@ -84,40 +70,30 @@ impl<const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char>
 {
     /// Constructor with pattern which can be used for matching.
     pub fn new(pattern: &str) -> WildMatchPattern<MULTI_WILDCARD, SINGLE_WILDCARD> {
-        let mut simplified: Vec<State> = Vec::with_capacity(pattern.len());
-        let mut prev_was_star = false;
-        let mut max_questionmarks: usize = 0;
-        let mut questionmarks: usize = 0;
-        for current_char in pattern.chars() {
-            if current_char == MULTI_WILDCARD {
-                prev_was_star = true;
-                max_questionmarks = std::cmp::max(max_questionmarks, questionmarks);
-                questionmarks = 0;
-            } else {
-                if current_char == SINGLE_WILDCARD {
-                    questionmarks += 1;
-                }
+        let mut simplified: Vec<char> = pattern.chars().collect();
+        let mut new_len = simplified.len();
+        let mut wildcard_count = 0;
 
-                let s = State {
-                    next_char: Some(current_char),
-                    has_wildcard: prev_was_star,
-                };
-                simplified.push(s);
-                prev_was_star = false;
+        for idx in (0..simplified.len()).rev() {
+            if simplified[idx] == MULTI_WILDCARD {
+                wildcard_count += 1;
+            } else {
+                if wildcard_count > 1 {
+                    new_len -= wildcard_count - 1;
+                    simplified[idx + 1..].rotate_left(wildcard_count - 1);
+                }
+                wildcard_count = 0;
             }
         }
-
-        if !pattern.is_empty() {
-            let final_state = State {
-                next_char: None,
-                has_wildcard: prev_was_star,
-            };
-            simplified.push(final_state);
+        if wildcard_count > 1 {
+            new_len -= wildcard_count - 1;
+            simplified.rotate_left(wildcard_count - 1);
         }
+
+        simplified.truncate(new_len);
 
         Self {
             pattern: simplified,
-            max_questionmarks,
         }
     }
 
@@ -131,76 +107,42 @@ impl<const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char>
         if self.pattern.is_empty() {
             return input.is_empty();
         }
-        let mut pattern_idx = 0;
-        const NONE: usize = usize::MAX;
-        let mut last_matched_char: Option<char> = None;
-        let mut last_wildcard_idx = NONE;
-        let mut questionmark_matches: Vec<char> = Vec::with_capacity(self.max_questionmarks);
-        for input_char in input.chars() {
-            match self.pattern.get(pattern_idx) {
-                None => {
-                    return false;
-                }
-                Some(p) if p.next_char == Some(SINGLE_WILDCARD) => {
-                    if p.has_wildcard {
-                        last_wildcard_idx = pattern_idx;
-                    }
-                    pattern_idx += 1;
-                    questionmark_matches.push(input_char);
-                }
-                Some(p) if p.next_char == Some(input_char) => {
-                    if p.has_wildcard {
-                        last_wildcard_idx = pattern_idx;
-                        questionmark_matches.clear();
-                    }
-                    pattern_idx += 1;
-                    last_matched_char = Some(input_char);
-                }
-                Some(p) if p.has_wildcard => {}
-                _ => {
-                    if last_wildcard_idx == NONE {
-                        return false;
-                    } else if last_matched_char == Some(input_char) {
-                        continue;
-                    }
-                    if !questionmark_matches.is_empty() {
-                        // Try to match a different set for questionmark
-                        let mut questionmark_idx = 0;
-                        let current_idx = pattern_idx;
-                        pattern_idx = last_wildcard_idx;
-                        for prev_state in self.pattern[last_wildcard_idx + 1..current_idx].iter() {
-                            if self.pattern[pattern_idx].next_char == Some(SINGLE_WILDCARD) {
-                                pattern_idx += 1;
-                                continue;
-                            }
-                            let mut prev_input_char = prev_state.next_char;
-                            if prev_input_char == Some(SINGLE_WILDCARD) {
-                                prev_input_char = Some(questionmark_matches[questionmark_idx]);
-                                questionmark_idx += 1;
-                            }
-                            if self.pattern[pattern_idx].next_char == prev_input_char {
-                                pattern_idx += 1;
-                            } else {
-                                pattern_idx = last_wildcard_idx;
-                                questionmark_matches.clear();
-                                break;
-                            }
-                        }
-                    } else {
-                        // Directly go back to the last wildcard
-                        pattern_idx = last_wildcard_idx;
-                    }
+        let input_chars: Vec<char> = input.chars().collect();
 
-                    // Match last char again
-                    if self.pattern[pattern_idx].next_char == Some(SINGLE_WILDCARD)
-                        || self.pattern[pattern_idx].next_char == Some(input_char)
-                    {
-                        pattern_idx += 1;
-                    }
-                }
+        const NONE: usize = usize::MAX;
+        let mut input_idx = 0;
+        let mut pattern_idx = 0;
+        let mut start_idx = NONE;
+        let mut matched = 0;
+
+        while input_idx < input.len() {
+            if pattern_idx < self.pattern.len()
+                && (self.pattern[pattern_idx] == SINGLE_WILDCARD
+                    || self.pattern[pattern_idx] == input_chars[input_idx])
+            {
+                input_idx += 1;
+                pattern_idx += 1;
+            } else if pattern_idx < self.pattern.len()
+                && self.pattern[pattern_idx] == MULTI_WILDCARD
+            {
+                start_idx = pattern_idx;
+                matched = input_idx;
+                pattern_idx += 1;
+            } else if start_idx != NONE {
+                pattern_idx = start_idx + 1;
+                matched += 1;
+                input_idx = matched;
+            } else {
+                return false;
             }
         }
-        self.pattern[pattern_idx].next_char.is_none()
+
+        while pattern_idx < self.pattern.len() && self.pattern[pattern_idx] == MULTI_WILDCARD {
+            pattern_idx += 1;
+        }
+
+        // If we have reached the end of both the pattern and the text, the pattern matches the text.
+        return pattern_idx == self.pattern.len();
     }
 }
 
@@ -217,6 +159,56 @@ mod tests {
     use super::*;
     use ntest::assert_false;
     use ntest::test_case;
+    use rand::{distributions::Alphanumeric, Rng};
+
+    #[test]
+    fn is_match_random() {
+        const PATTERN_LEN: usize = 100;
+        let mut rng = rand::thread_rng();
+        let mut pattern: String = rand::thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(PATTERN_LEN)
+            .map(char::from)
+            .collect();
+        for _ in 0..rng.gen_range(0..15) {
+            let idx = rng.gen_range(0..PATTERN_LEN);
+            pattern.replace_range(idx..idx + 1, "?")
+        }
+        for _ in 0..rng.gen_range(0..15) {
+            let idx = rng.gen_range(0..PATTERN_LEN);
+            pattern.replace_range(idx..idx + 1, "*")
+        }
+        let m = WildMatch::new(&pattern);
+        for pattern_idx in 0..rng.gen_range(0..10_000) {
+            let mut input = pattern.clone();
+            for (i, c) in pattern.chars().rev().enumerate() {
+                let idx = pattern.len() - i - 1;
+                if c == '?' {
+                    let rand_char: String = rand::thread_rng()
+                        .sample_iter(&Alphanumeric)
+                        .take(1)
+                        .map(char::from)
+                        .collect();
+                    input.replace_range(idx..idx + 1, &rand_char)
+                }
+                if c == '*' {
+                    let rand_char: String = rand::thread_rng()
+                        .sample_iter(&Alphanumeric)
+                        .take(rng.gen_range(0..15))
+                        .map(char::from)
+                        .collect();
+                    input.replace_range(idx..idx + 1, &rand_char)
+                }
+            }
+            assert!(
+                m.matches(&input),
+                "Pattern ({}): {} doesn't match input: {}",
+                pattern_idx,
+                pattern,
+                input
+            );
+        }
+    }
 
     #[test_case("**")]
     #[test_case("*")]
@@ -251,6 +243,8 @@ mod tests {
         assert_false!(m.matches("cat"));
     }
 
+    #[test_case("*1?", "123")]
+    #[test_case("*12", "122")]
     #[test_case("cat?", "wildcats")]
     #[test_case("cat*", "wildcats")]
     #[test_case("*x*", "wildcats")]
@@ -265,6 +259,8 @@ mod tests {
         assert_false!(m.matches(expected))
     }
 
+    #[test_case("*121", "12121")]
+    #[test_case("?*3", "111333")]
     #[test_case("*113", "1113")]
     #[test_case("*113", "113")]
     #[test_case("*113", "11113")]
@@ -304,7 +300,12 @@ mod tests {
     #[test_case("*?", "xx")]
     fn match_long(pattern: &str, expected: &str) {
         let m = WildMatch::new(pattern);
-        assert!(m.matches(expected));
+        assert!(
+            m.matches(expected),
+            "Expected pattern {} to match {}",
+            pattern,
+            expected
+        );
     }
 
     #[test]
