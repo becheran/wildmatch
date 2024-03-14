@@ -107,33 +107,42 @@ impl<const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char>
         if self.pattern.is_empty() {
             return input.is_empty();
         }
-        let input_chars: Vec<char> = input.chars().collect();
+        let mut input_chars = input.chars();
 
-        const NONE: usize = usize::MAX;
-        let mut input_idx = 0;
         let mut pattern_idx = 0;
-        let mut start_idx = NONE;
-        let mut matched = 0;
+        if let Some(mut input_char) = input_chars.next() {
+            const NONE: usize = usize::MAX;
+            let mut start_idx = NONE;
+            let mut matched = "".chars();
 
-        while input_idx < input.len() {
-            if pattern_idx < self.pattern.len()
-                && (self.pattern[pattern_idx] == SINGLE_WILDCARD
-                    || self.pattern[pattern_idx] == input_chars[input_idx])
-            {
-                input_idx += 1;
-                pattern_idx += 1;
-            } else if pattern_idx < self.pattern.len()
-                && self.pattern[pattern_idx] == MULTI_WILDCARD
-            {
-                start_idx = pattern_idx;
-                matched = input_idx;
-                pattern_idx += 1;
-            } else if start_idx != NONE {
-                pattern_idx = start_idx + 1;
-                matched += 1;
-                input_idx = matched;
-            } else {
-                return false;
+            loop {
+                if pattern_idx < self.pattern.len()
+                    && (self.pattern[pattern_idx] == SINGLE_WILDCARD
+                        || self.pattern[pattern_idx] == input_char)
+                {
+                    pattern_idx += 1;
+                    if let Some(next_char) = input_chars.next() {
+                        input_char = next_char;
+                    } else {
+                        break;
+                    }
+                } else if pattern_idx < self.pattern.len()
+                    && self.pattern[pattern_idx] == MULTI_WILDCARD
+                {
+                    start_idx = pattern_idx;
+                    matched = input_chars.clone();
+                    pattern_idx += 1;
+                } else if start_idx != NONE {
+                    pattern_idx = start_idx + 1;
+                    if let Some(next_char) = matched.next() {
+                        input_char = next_char;
+                    } else {
+                        break;
+                    }
+                    input_chars = matched.clone();
+                } else {
+                    return false;
+                }
             }
         }
 
@@ -243,6 +252,9 @@ mod tests {
         assert_false!(m.matches("cat"));
     }
 
+    #[test_case("1", "")]
+    #[test_case("?", "")]
+    #[test_case("?", "11")]
     #[test_case("*1?", "123")]
     #[test_case("*12", "122")]
     #[test_case("cat?", "wildcats")]
@@ -259,6 +271,9 @@ mod tests {
         assert_false!(m.matches(expected))
     }
 
+    #[test_case("*", "")]
+    #[test_case("*", "1")]
+    #[test_case("?", "1")]
     #[test_case("*121", "12121")]
     #[test_case("?*3", "111333")]
     #[test_case("*113", "1113")]
