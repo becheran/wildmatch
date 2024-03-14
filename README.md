@@ -25,8 +25,8 @@ The following table shows a performance benchmarks between wildmatch, [regex](ht
 | ----              | ------------: | ---------: | -------------: | ---------:
 | compiling/text    |    **462 ns** |  39,714 ns |   1,470 ns     | 13,210 ns
 | compiling/complex |     190 ns    | 153,830 ns |     238 ns     | **60 ns**
-| matching/text     |     497 ns    |   4,065 ns | **456 ns**     | 6,097 ns
-| matching/complex  |    **675 ns** |  16,085 ns |   1,426 ns     | 3,773 ns
+| matching/text     |    **186 ns** |   4,065 ns |     456 ns     | 6,097 ns
+| matching/complex  |    **310 ns** |  16,085 ns |   1,426 ns     | 3,773 ns
 
 The library only depends on the rust [`stdlib`](https://doc.rust-lang.org/std/).
 
