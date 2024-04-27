@@ -173,49 +173,52 @@ mod tests {
     #[test]
     fn is_match_random() {
         const PATTERN_LEN: usize = 100;
-        let mut rng = rand::thread_rng();
-        let mut pattern: String = rand::thread_rng()
-            .sample_iter(&Alphanumeric)
-            .take(PATTERN_LEN)
-            .map(char::from)
-            .collect();
-        for _ in 0..rng.gen_range(0..15) {
-            let idx = rng.gen_range(0..PATTERN_LEN);
-            pattern.replace_range(idx..idx + 1, "?")
-        }
-        for _ in 0..rng.gen_range(0..15) {
-            let idx = rng.gen_range(0..PATTERN_LEN);
-            pattern.replace_range(idx..idx + 1, "*")
-        }
-        let m = WildMatch::new(&pattern);
-        for pattern_idx in 0..rng.gen_range(0..10_000) {
-            let mut input = pattern.clone();
-            for (i, c) in pattern.chars().rev().enumerate() {
-                let idx = pattern.len() - i - 1;
-                if c == '?' {
-                    let rand_char: String = rand::thread_rng()
-                        .sample_iter(&Alphanumeric)
-                        .take(1)
-                        .map(char::from)
-                        .collect();
-                    input.replace_range(idx..idx + 1, &rand_char)
-                }
-                if c == '*' {
-                    let rand_char: String = rand::thread_rng()
-                        .sample_iter(&Alphanumeric)
-                        .take(rng.gen_range(0..15))
-                        .map(char::from)
-                        .collect();
-                    input.replace_range(idx..idx + 1, &rand_char)
-                }
+
+        for _ in 0..1_000 {
+            let mut rng = rand::thread_rng();
+            let mut pattern: String = rand::thread_rng()
+                .sample_iter(&Alphanumeric)
+                .take(PATTERN_LEN)
+                .map(char::from)
+                .collect();
+            for _ in 0..rng.gen_range(0..15) {
+                let idx = rng.gen_range(0..PATTERN_LEN);
+                pattern.replace_range(idx..idx + 1, "?")
             }
-            assert!(
-                m.matches(&input),
-                "Pattern ({}): {} doesn't match input: {}",
-                pattern_idx,
-                pattern,
-                input
-            );
+            for _ in 0..rng.gen_range(0..15) {
+                let idx = rng.gen_range(0..PATTERN_LEN);
+                pattern.replace_range(idx..idx + 1, "*")
+            }
+            let m = WildMatch::new(&pattern);
+            for pattern_idx in 0..rng.gen_range(0..1_000) {
+                let mut input = pattern.clone();
+                for (i, c) in pattern.chars().rev().enumerate() {
+                    let idx = pattern.len() - i - 1;
+                    if c == '?' {
+                        let rand_char: String = rand::thread_rng()
+                            .sample_iter(&Alphanumeric)
+                            .take(1)
+                            .map(char::from)
+                            .collect();
+                        input.replace_range(idx..idx + 1, &rand_char)
+                    }
+                    if c == '*' {
+                        let rand_char: String = rand::thread_rng()
+                            .sample_iter(&Alphanumeric)
+                            .take(rng.gen_range(0..15))
+                            .map(char::from)
+                            .collect();
+                        input.replace_range(idx..idx + 1, &rand_char)
+                    }
+                }
+                assert!(
+                    m.matches(&input),
+                    "Pattern ({}): {} doesn't match input: {}",
+                    pattern_idx,
+                    pattern,
+                    input
+                );
+            }
         }
     }
 
