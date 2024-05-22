@@ -117,6 +117,12 @@ impl<const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char>
 
             loop {
                 if pattern_idx < self.pattern.len()
+                    && self.pattern[pattern_idx] == MULTI_WILDCARD
+                {
+                    start_idx = pattern_idx;
+                    matched = input_chars.clone();
+                    pattern_idx += 1;
+                } else if pattern_idx < self.pattern.len()
                     && (self.pattern[pattern_idx] == SINGLE_WILDCARD
                         || self.pattern[pattern_idx] == input_char)
                 {
@@ -126,12 +132,6 @@ impl<const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char>
                     } else {
                         break;
                     }
-                } else if pattern_idx < self.pattern.len()
-                    && self.pattern[pattern_idx] == MULTI_WILDCARD
-                {
-                    start_idx = pattern_idx;
-                    matched = input_chars.clone();
-                    pattern_idx += 1;
                 } else if start_idx != NONE {
                     pattern_idx = start_idx + 1;
                     if let Some(next_char) = matched.next() {
@@ -292,6 +292,7 @@ mod tests {
     #[test_case("*cat*", "d&(*og_cat_dog")]
     #[test_case("*?*", "d&(*og_cat_dog")]
     #[test_case("*a*", "d&(*og_cat_dog")]
+    #[test_case("a*b", "a*xb")]
     #[test_case("*", "*")]
     #[test_case("*", "?")]
     #[test_case("?", "?")]
