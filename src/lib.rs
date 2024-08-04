@@ -51,6 +51,7 @@ pub type WildMatch = WildMatchPattern<'*', '?'>;
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct WildMatchPattern<const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char> {
     pattern: Vec<char>,
+    case_insensitive: bool,
 }
 
 impl<const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char> fmt::Display
@@ -94,7 +95,17 @@ impl<const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char>
 
         Self {
             pattern: simplified,
+            case_insensitive: false,
         }
+    }
+
+    /// Constructor with pattern which can be used for matching with case-insensitive comparison.
+    pub fn new_case_insensitive(
+        pattern: &str,
+    ) -> WildMatchPattern<MULTI_WILDCARD, SINGLE_WILDCARD> {
+        let mut m = Self::new(pattern);
+        m.case_insensitive = true;
+        m
     }
 
     #[deprecated(since = "2.0.0", note = "use `matches` instead")]
@@ -116,15 +127,16 @@ impl<const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char>
             let mut matched = "".chars();
 
             loop {
-                if pattern_idx < self.pattern.len()
-                    && self.pattern[pattern_idx] == MULTI_WILDCARD
-                {
+                if pattern_idx < self.pattern.len() && self.pattern[pattern_idx] == MULTI_WILDCARD {
                     start_idx = pattern_idx;
                     matched = input_chars.clone();
                     pattern_idx += 1;
                 } else if pattern_idx < self.pattern.len()
                     && (self.pattern[pattern_idx] == SINGLE_WILDCARD
-                        || self.pattern[pattern_idx] == input_char)
+                        || self.pattern[pattern_idx] == input_char
+                        || (self.case_insensitive
+                            && self.pattern[pattern_idx].to_ascii_lowercase()
+                                == input_char.to_ascii_lowercase()))
                 {
                     pattern_idx += 1;
                     if let Some(next_char) = input_chars.next() {
@@ -151,7 +163,7 @@ impl<const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char>
         }
 
         // If we have reached the end of both the pattern and the text, the pattern matches the text.
-        return pattern_idx == self.pattern.len();
+        pattern_idx == self.pattern.len()
     }
 }
 
@@ -235,6 +247,17 @@ mod tests {
     fn is_match(pattern: &str) {
         let m = WildMatch::new(pattern);
         assert!(m.matches("cat"));
+    }
+
+    #[test_case("CAT", "cat")]
+    #[test_case("CAT", "CAT")]
+    #[test_case("CA?", "Cat")]
+    #[test_case("C*", "cAt")]
+    #[test_case("C?*", "cAT")]
+    #[test_case("C**", "caT")]
+    fn is_match_case_insensitive(pattern: &str, input: &str) {
+        let m = WildMatch::new_case_insensitive(pattern);
+        assert!(m.matches(input));
     }
 
     #[test_case("*d*")]
