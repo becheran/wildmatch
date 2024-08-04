@@ -172,6 +172,11 @@ impl<const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char>
         self.pattern.iter().collect::<String>()
     }
 
+    /// Returns the pattern string as a slice of chars.
+    pub fn pattern_chars(&self) -> &[char] {
+        &self.pattern
+    }
+
     /// Returns if the pattern is case-insensitive.
     pub fn is_case_insensitive(&self) -> bool {
         self.case_insensitive
