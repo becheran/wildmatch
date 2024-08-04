@@ -48,7 +48,7 @@ pub type WildMatch = WildMatchPattern<'*', '?'>;
 /// multiple-character wildcard (e.g., `*`), and `SINGLE_WILDCARD` is the
 /// character used to represent a single-character wildcard (e.g., `?`).
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Default)]
 pub struct WildMatchPattern<const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char> {
     pattern: Vec<char>,
     case_insensitive: bool,
