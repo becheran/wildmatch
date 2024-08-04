@@ -284,6 +284,7 @@ mod tests {
     #[test_case("cat?")]
     #[test_case("cacat")]
     #[test_case("cat*dog")]
+    #[test_case("CAT")]
     fn no_match(pattern: &str) {
         let m = WildMatch::new(pattern);
         assert_false!(m.matches("cat"));
