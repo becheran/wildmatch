@@ -165,6 +165,17 @@ impl<const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char>
         // If we have reached the end of both the pattern and the text, the pattern matches the text.
         pattern_idx == self.pattern.len()
     }
+
+    /// Returns the pattern string.
+    /// N.B. Consecutive multi-wildcards are simplified to a single multi-wildcard.
+    pub fn pattern(&self) -> String {
+        self.pattern.iter().collect::<String>()
+    }
+
+    /// Returns if the pattern is case-insensitive.
+    pub fn is_case_insensitive(&self) -> bool {
+        self.case_insensitive
+    }
 }
 
 impl<'a, const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char> PartialEq<&'a str>
