@@ -135,8 +135,8 @@ impl<const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char>
                     && (self.pattern[pattern_idx] == SINGLE_WILDCARD
                         || self.pattern[pattern_idx] == input_char
                         || (self.case_insensitive
-                            && self.pattern[pattern_idx].to_ascii_lowercase()
-                                == input_char.to_ascii_lowercase()))
+                            && self.pattern[pattern_idx].to_lowercase().collect::<Vec<_>>()
+                                == input_char.to_lowercase().collect::<Vec<_>>()))
                 {
                     pattern_idx += 1;
                     if let Some(next_char) = input_chars.next() {
@@ -271,6 +271,12 @@ mod tests {
     #[test_case("C*", "cAt")]
     #[test_case("C?*", "cAT")]
     #[test_case("C**", "caT")]
+    #[test_case("КОТ", "кот", name = "cyrillic_lower")]
+    #[test_case("КОТ", "КОТ", name = "cyrillic_upper")]
+    #[test_case("КО?", "Кот", name = "cyrillic_mixed1")]
+    #[test_case("К*", "кОт", name = "cyrillic_mixed2")]
+    #[test_case("К?*", "кОТ", name = "cyrillic_mixed3")]
+    #[test_case("К**", "коТ", name = "cyrillic_mixed4")]
     fn is_match_case_insensitive(pattern: &str, input: &str) {
         let m = WildMatch::new_case_insensitive(pattern);
         assert!(m.matches(input));
