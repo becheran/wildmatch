@@ -47,6 +47,36 @@ pub type WildMatch = WildMatchPattern<'*', '?'>;
 /// `MULTI_WILDCARD` is the character used to represent a
 /// multiple-character wildcard (e.g., `*`), and `SINGLE_WILDCARD` is the
 /// character used to represent a single-character wildcard (e.g., `?`).
+///
+/// # Panics
+///
+/// Panics at compile time if both wildcard characters are identical.
+///
+/// # Examples
+///
+/// ```compile_fail
+/// # use wildmatch::WildMatchPattern;
+/// // ❌ Fails to compile: '*' cannot be both wildcards.
+/// WildMatchPattern::<'*', '*'>::new("");
+/// ```
+///
+/// ```compile_fail
+/// # use wildmatch::WildMatchPattern;
+/// // ❌ Fails to compile: '*' cannot be both wildcards.
+/// WildMatchPattern::<'*', '*'>::new_case_insensitive("");
+/// ```
+///
+/// ```
+/// # use wildmatch::WildMatchPattern;
+/// // ✅ Compiles fine.
+/// WildMatchPattern::<'*', '?'>::new("*cat?");
+/// ```
+///
+/// ```
+/// # use wildmatch::WildMatchPattern;
+/// // ✅ Compiles fine.
+/// WildMatchPattern::<'*', '?'>::new_case_insensitive("*cat?");
+/// ```
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, PartialOrd, Default)]
 pub struct WildMatchPattern<const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char> {
@@ -69,8 +99,16 @@ impl<const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char> fmt::Display
 impl<const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char>
     WildMatchPattern<MULTI_WILDCARD, SINGLE_WILDCARD>
 {
+    const WILDCARDS_DIFFER: () = assert!(
+        MULTI_WILDCARD != SINGLE_WILDCARD,
+        "single and multi wildcards cannot be the same"
+    );
+
     /// Constructor with pattern which can be used for matching.
     pub fn new(pattern: &str) -> WildMatchPattern<MULTI_WILDCARD, SINGLE_WILDCARD> {
+        #[allow(clippy::let_unit_value)]
+        let _ = Self::WILDCARDS_DIFFER;
+
         let mut simplified: Vec<char> = pattern.chars().collect();
         let mut new_len = simplified.len();
         let mut wildcard_count = 0;
