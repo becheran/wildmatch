@@ -11,6 +11,7 @@ categories = ["algorithms"]
 repository = "https://github.com/becheran/wildmatch"
 
 [dependencies]
+bstr = { version = "1.10", optional = true }
 serde = { version = "1.0", default-features = false, features = ["derive"], optional = true }
 
 [dev-dependencies]
@@ -22,6 +23,7 @@ regex-lite = {version = "0.1.5"}
 rand = {version = "0.8.5"}
 
 [features]
+bytes = ["dep:bstr"]
 serde = ["dep:serde"]
 
 [[bench]]
