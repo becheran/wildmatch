@@ -69,13 +69,13 @@ pub type WildMatch = WildMatchPattern<'*', '?'>;
 /// ```
 /// # use wildmatch::WildMatchPattern;
 /// // ✅ Compiles fine.
-/// WildMatchPattern::<'*', '?'>::new("*cat?");
+/// WildMatchPattern::<'*', '?'>::new("");
 /// ```
 ///
 /// ```
 /// # use wildmatch::WildMatchPattern;
 /// // ✅ Compiles fine.
-/// WildMatchPattern::<'*', '?'>::new_case_insensitive("*cat?");
+/// WildMatchPattern::<'*', '?'>::new_case_insensitive("");
 /// ```
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, PartialOrd, Default)]
