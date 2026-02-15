@@ -15,7 +15,7 @@ serde = { version = "1.0", default-features = false, features = ["derive"], opti
 
 [dev-dependencies]
 ntest = { version = "0.9.0", default-features = false }
-criterion = { version = "0.5.1", default-features = false }
+criterion = { version = "0.8.2", default-features = false }
 regex = { version = "1.10.2", default-features = false }
 glob = { version = "0.3.1", default-features = false }
 regex-lite = {version = "0.1.5"}
