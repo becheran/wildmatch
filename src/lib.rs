@@ -33,7 +33,10 @@
 //! assert!(WildMatchPattern::<'%', '_'>::new("%cat%").matches("dog_cat_dog"));
 //! ```
 
-use std::fmt;
+use std::{fmt, str::Chars};
+
+#[cfg(feature = "bytes")]
+use bstr::ByteSlice;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -156,13 +159,25 @@ impl<const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char>
         if self.pattern.is_empty() {
             return input.is_empty();
         }
-        let mut input_chars = input.chars();
+        self.matches_inner(input.chars())
+    }
 
+    #[cfg(feature = "bytes")]
+    /// Returns true if pattern applies to the given input bytes
+    pub fn matches_bytes(&self, input: &[u8]) -> bool {
+        if self.pattern.is_empty() {
+            return input.is_empty();
+        }
+        self.matches_inner(input.chars())
+    }
+
+    #[inline]
+    fn matches_inner<C: CharsWrapper>(&self, mut input_chars: C) -> bool {
         let mut pattern_idx = 0;
         if let Some(mut input_char) = input_chars.next() {
             const NONE: usize = usize::MAX;
             let mut start_idx = NONE;
-            let mut matched = "".chars();
+            let mut matched = C::new();
 
             loop {
                 if pattern_idx < self.pattern.len() && self.pattern[pattern_idx] == MULTI_WILDCARD {
@@ -226,6 +241,45 @@ impl<'a, const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char> PartialEq<&'a 
 {
     fn eq(&self, &other: &&'a str) -> bool {
         self.matches(other)
+    }
+}
+
+trait CharsWrapper {
+    fn next(&mut self) -> Option<char>;
+
+    fn clone(&self) -> Self;
+
+    fn new() -> Self
+    where
+        Self: Sized;
+}
+
+impl CharsWrapper for Chars<'_> {
+    fn next(&mut self) -> Option<char> {
+        std::iter::Iterator::next(self)
+    }
+
+    fn clone(&self) -> Self {
+        std::clone::Clone::clone(self)
+    }
+
+    fn new() -> Self {
+        "".chars()
+    }
+}
+
+#[cfg(feature = "bytes")]
+impl CharsWrapper for bstr::Chars<'_> {
+    fn next(&mut self) -> Option<char> {
+        std::iter::Iterator::next(self)
+    }
+
+    fn clone(&self) -> Self {
+        std::clone::Clone::clone(self)
+    }
+
+    fn new() -> Self {
+        b"".chars()
     }
 }
 
@@ -318,6 +372,14 @@ mod tests {
     fn is_match_case_insensitive(pattern: &str, input: &str) {
         let m = WildMatch::new_case_insensitive(pattern);
         assert!(m.matches(input));
+    }
+
+    #[cfg(feature = "bytes")]
+    #[test]
+    fn matches_bytes() {
+        let m = WildMatch::new("c?t");
+        assert!(m.matches_bytes(b"c\x00t"));
+        assert!(m.matches_bytes(b"cat"));
     }
 
     #[test_case("*d*")]
