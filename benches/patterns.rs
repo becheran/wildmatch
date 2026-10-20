@@ -1,7 +1,8 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 use glob::Pattern;
 use regex::Regex;
 use regex_lite::Regex as RegexLite;
+use std::hint::black_box;
 use wildmatch::WildMatch;
 
 const TEXT: &str = "Lorem ipsum dolor sit amet, \
@@ -35,6 +36,10 @@ pub fn compiling(c: &mut Criterion) {
     group.bench_function("compile complex (wildmatch)", |b| {
         b.iter(|| WildMatch::new(black_box(MOST_COMPLEX_PATTERN)))
     });
+    group.bench_function("compile many stars (wildmatch)", |b| {
+        let pattern = "a**".repeat(1_000);
+        b.iter(|| WildMatch::new(black_box(&pattern)))
+    });
 
     group.bench_function("compile text (regex)", |b| {
         b.iter(|| Regex::new(black_box(FULL_TEXT_REGEX)).unwrap())
@@ -61,6 +66,8 @@ pub fn compiling(c: &mut Criterion) {
 pub fn matching(c: &mut Criterion) {
     let pattern1 = WildMatch::new(FULL_TEXT_PATTERN);
     let pattern2 = WildMatch::new(COMPLEX_PATTERN);
+    let pattern3 = WildMatch::new_case_insensitive(COMPLEX_PATTERN);
+    let text_upper = TEXT.to_uppercase();
     let regex1 = Regex::new(FULL_TEXT_REGEX).unwrap();
     let regex2 = Regex::new(COMPLEX_REGEX).unwrap();
     let glob1 = Pattern::new(FULL_TEXT_PATTERN).unwrap();
@@ -75,6 +82,9 @@ pub fn matching(c: &mut Criterion) {
     });
     group.bench_function("match complex (wildmatch)", |b| {
         b.iter(|| pattern2 == black_box(TEXT))
+    });
+    group.bench_function("match complex case-insensitive (wildmatch)", |b| {
+        b.iter(|| pattern3 == black_box(text_upper.as_str()))
     });
 
     group.bench_function("match text (regex)", |b| {

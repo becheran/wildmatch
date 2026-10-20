@@ -109,32 +109,32 @@ impl<const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char>
         #[allow(clippy::let_unit_value)]
         let _ = Self::WILDCARDS_DIFFER;
 
-        let mut simplified: Vec<char> = pattern.chars().collect();
-        let mut new_len = simplified.len();
-        let mut wildcard_count = 0;
-
-        for idx in (0..simplified.len()).rev() {
-            if simplified[idx] == MULTI_WILDCARD {
-                wildcard_count += 1;
-            } else {
-                if wildcard_count > 1 {
-                    new_len -= wildcard_count - 1;
-                    simplified[idx + 1..].rotate_left(wildcard_count - 1);
-                }
-                wildcard_count = 0;
-            }
-        }
-        if wildcard_count > 1 {
-            new_len -= wildcard_count - 1;
-            simplified.rotate_left(wildcard_count - 1);
-        }
-
-        simplified.truncate(new_len);
-
         Self {
-            pattern: simplified,
+            pattern: Self::simplify(pattern.chars().collect()),
             case_insensitive: false,
         }
+    }
+
+    /// Collapses consecutive multi-wildcards into a single one.
+    fn simplify(mut pattern: Vec<char>) -> Vec<char> {
+        pattern.dedup_by(|a, b| *a == MULTI_WILDCARD && *b == MULTI_WILDCARD);
+        pattern
+    }
+
+    #[inline]
+    fn char_matches(&self, pattern_char: char, input_char: char) -> bool {
+        if pattern_char == SINGLE_WILDCARD || pattern_char == input_char {
+            return true;
+        }
+        if !self.case_insensitive {
+            return false;
+        }
+        // Both must be ASCII for the fast path: some non-ASCII chars lowercase to ASCII
+        // (e.g. the Kelvin sign 'K' lowercases to 'k').
+        if pattern_char.is_ascii() && input_char.is_ascii() {
+            return pattern_char.eq_ignore_ascii_case(&input_char);
+        }
+        pattern_char.to_lowercase().eq(input_char.to_lowercase())
     }
 
     /// Constructor with pattern which can be used for matching with case-insensitive comparison.
@@ -170,11 +170,7 @@ impl<const MULTI_WILDCARD: char, const SINGLE_WILDCARD: char>
                     matched = input_chars.clone();
                     pattern_idx += 1;
                 } else if pattern_idx < self.pattern.len()
-                    && (self.pattern[pattern_idx] == SINGLE_WILDCARD
-                        || self.pattern[pattern_idx] == input_char
-                        || (self.case_insensitive
-                            && self.pattern[pattern_idx].to_lowercase().collect::<Vec<_>>()
-                                == input_char.to_lowercase().collect::<Vec<_>>()))
+                    && self.char_matches(self.pattern[pattern_idx], input_char)
                 {
                     pattern_idx += 1;
                     if let Some(next_char) = input_chars.next() {
@@ -288,6 +284,88 @@ mod tests {
         }
     }
 
+    /// Straightforward dynamic-programming matcher used as a reference implementation.
+    fn reference_match(pattern: &[char], input: &[char], eq: impl Fn(char, char) -> bool) -> bool {
+        // dp[j] == true if pattern[..i] matches input[..j]
+        let mut dp = vec![false; input.len() + 1];
+        dp[0] = true;
+        for &p in pattern {
+            let mut next = vec![false; input.len() + 1];
+            if p == '*' {
+                let mut any = false;
+                for j in 0..=input.len() {
+                    any |= dp[j];
+                    next[j] = any;
+                }
+            } else {
+                for j in 1..=input.len() {
+                    next[j] = dp[j - 1] && (p == '?' || eq(p, input[j - 1]));
+                }
+            }
+            dp = next;
+        }
+        dp[input.len()]
+    }
+
+    /// Calls `f` with every string of length `0..=max_len` over `alphabet`.
+    fn for_all_strings(alphabet: &[char], max_len: usize, f: &mut impl FnMut(&str)) {
+        fn rec(alphabet: &[char], max_len: usize, cur: &mut String, f: &mut impl FnMut(&str)) {
+            f(cur);
+            if cur.chars().count() == max_len {
+                return;
+            }
+            for &c in alphabet {
+                cur.push(c);
+                rec(alphabet, max_len, cur, f);
+                cur.pop();
+            }
+        }
+        rec(alphabet, max_len, &mut String::new(), f);
+    }
+
+    #[test]
+    fn matches_reference_exhaustive() {
+        let mut inputs = Vec::new();
+        for_all_strings(&['a', 'b'], 6, &mut |s| inputs.push(s.to_string()));
+        for_all_strings(&['a', 'b', '*', '?'], 5, &mut |pattern| {
+            let m = WildMatch::new(pattern);
+            let p: Vec<char> = pattern.chars().collect();
+            for input in &inputs {
+                let i: Vec<char> = input.chars().collect();
+                assert_eq!(
+                    m.matches(input),
+                    reference_match(&p, &i, |a, b| a == b),
+                    "pattern {:?} input {:?}",
+                    pattern,
+                    input
+                );
+            }
+        });
+    }
+
+    #[test]
+    fn matches_reference_exhaustive_case_insensitive() {
+        let eq = |a: char, b: char| a.to_lowercase().eq(b.to_lowercase());
+        let mut inputs = Vec::new();
+        for_all_strings(&['a', 'B', 'é', 'Ö'], 4, &mut |s| {
+            inputs.push(s.to_string())
+        });
+        for_all_strings(&['A', 'b', 'É', 'ö', '*', '?'], 4, &mut |pattern| {
+            let m = WildMatch::new_case_insensitive(pattern);
+            let p: Vec<char> = pattern.chars().collect();
+            for input in &inputs {
+                let i: Vec<char> = input.chars().collect();
+                assert_eq!(
+                    m.matches(input),
+                    reference_match(&p, &i, eq),
+                    "pattern {:?} input {:?}",
+                    pattern,
+                    input
+                );
+            }
+        });
+    }
+
     #[test_case("**")]
     #[test_case("*")]
     #[test_case("*?*")]
@@ -315,9 +393,29 @@ mod tests {
     #[test_case("К*", "кОт", name = "cyrillic_mixed2")]
     #[test_case("К?*", "кОТ", name = "cyrillic_mixed3")]
     #[test_case("К**", "коТ", name = "cyrillic_mixed4")]
+    #[test_case("k", "\u{212A}", name = "kelvin_sign_input")]
+    #[test_case("\u{212A}", "k", name = "kelvin_sign_pattern")]
+    #[test_case("\u{212A}", "K", name = "kelvin_sign_pattern_upper")]
+    #[test_case("*\u{212A}", "abK", name = "kelvin_sign_after_star")]
     fn is_match_case_insensitive(pattern: &str, input: &str) {
         let m = WildMatch::new_case_insensitive(pattern);
         assert!(m.matches(input));
+    }
+
+    #[test_case("k", "\u{212A}")]
+    #[test_case("CAT", "cat")]
+    #[test_case("é", "É")]
+    fn no_match_case_sensitive(pattern: &str, input: &str) {
+        let m = WildMatch::new(pattern);
+        assert_false!(m.matches(input));
+    }
+
+    #[test_case("a", "\u{0101}", name = "ascii_vs_macron")]
+    #[test_case("i", "\u{0130}", name = "i_vs_dotted_capital_i")]
+    #[test_case("?", "", name = "single_wildcard_empty")]
+    fn no_match_case_insensitive(pattern: &str, input: &str) {
+        let m = WildMatch::new_case_insensitive(pattern);
+        assert_false!(m.matches(input));
     }
 
     #[test_case("*d*")]
@@ -498,5 +596,32 @@ mod tests {
     fn to_string_empty() {
         let m = WildMatch::new("");
         assert_eq!("", m.to_string());
+    }
+
+    #[test_case("***", "*")]
+    #[test_case("***a", "*a")]
+    #[test_case("a***", "a*")]
+    #[test_case("**a**b**", "*a*b*")]
+    #[test_case("*?*?**", "*?*?*")]
+    #[test_case("?**?", "?*?")]
+    #[test_case("ab", "ab")]
+    fn simplify_multi_wildcards(pattern: &str, expected: &str) {
+        assert_eq!(expected, WildMatch::new(pattern).pattern());
+    }
+
+    #[test]
+    fn simplify_multi_wildcards_alternative_wildcards() {
+        let m = WildMatchPattern::<'%', '_'>::new("%%a**__%%%");
+        assert_eq!("%a**__%", m.pattern());
+    }
+
+    #[test]
+    fn simplify_long_pattern() {
+        let pattern = "a**".repeat(10_000);
+        let m = WildMatch::new(&pattern);
+        assert_eq!("a*".repeat(10_000), m.pattern());
+        assert!(m.matches(&"a".repeat(10_000)));
+        assert!(m.matches(&"ab".repeat(10_000)));
+        assert_false!(m.matches(&"a".repeat(9_999)));
     }
 }
